@@ -40,7 +40,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
+h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
   font-family: 'Prompt', sans-serif;
 }
 
@@ -116,7 +116,7 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
 }
 
 /* =========================================================
-   ส่วนหัว (Hero Header)
+   ส่วนหัว (Hero Header) และปุ่มมุมขวาบน
    ========================================================= */
 .hero-header {
   padding: 36px 0 22px;
@@ -131,10 +131,19 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
   backdrop-filter: blur(14px);
 }
 
+.hero-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .brand-row {
   display: flex;
   align-items: center;
   gap: 22px;
+  flex: 1;
+  min-width: 0;
 }
 
 .dept-logo {
@@ -177,6 +186,42 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
 .site-subtitle {
   font-size: 1rem;
   color: var(--text-muted);
+}
+
+/* ปุ่มจัดการรหัสผ่านมุมขวาบน */
+.hero-actions {
+  flex-shrink: 0;
+}
+
+.passcode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--primary);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid var(--primary-border);
+  box-shadow: 0 3px 10px rgba(124, 99, 168, 0.08);
+  transition: all 0.2s ease;
+}
+
+.passcode-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.passcode-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(124, 99, 168, 0.24);
+  transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -513,6 +558,17 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
 /* =========================================================
    Responsive สำหรับมือถือและแท็บเล็ต
    ========================================================= */
+@media (max-width: 760px) {
+  .hero-top-row {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .hero-actions {
+    align-self: flex-end;
+  }
+}
+
 @media (max-width: 680px) {
   .hero-header {
     padding: 20px 0 14px;
@@ -532,6 +588,15 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge {
   .dept-logo {
     width: 64px;
     height: 64px;
+  }
+
+  .hero-actions {
+    align-self: stretch;
+  }
+
+  .passcode-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .apps-grid {
