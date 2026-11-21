@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม (พ.ศ. 2569)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- เลเยอร์ภาพพื้นหลังและแผ่นกรองแสง -->
+  <div class="bg-layer" aria-hidden="true">
+    <div id="bg-image" class="bg-image"></div>
+    <div id="bg-overlay" class="bg-overlay"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <!-- แถบประกาศด้านบน (เปิด-ปิดได้จากชีต Portal_Settings) -->
+    <div id="notice-bar" class="notice-bar hidden" role="status">
+      <div class="container notice-inner">
+        <span id="notice-text"></span>
+      </div>
+    </div>
+
+    <!-- ส่วนหัว (Hero Header) -->
+    <header class="hero-header">
+      <div class="container hero-inner">
+        <div class="brand-row">
+          <img id="dept-logo" class="dept-logo hidden" src="" alt="โลโก้ภาควิชาเคมีอุตสาหกรรม" />
+          <div class="brand-text">
+            <span id="dept-badge" class="dept-badge">ภาควิชาเคมีอุตสาหกรรม • คณะวิทยาศาสตร์ มช.</span>
+            <h1 id="site-title" class="site-title">ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม (พ.ศ. 2569)</h1>
+            <p id="site-subtitle" class="site-subtitle">ศูนย์รวมระบบงานออนไลน์สำหรับคณาจารย์และบุคลากร ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่</p>
+          </div>
+        </div>
+
+        <!-- ช่องค้นหาและตัวกรองหมวดหมู่ -->
+        <div class="toolbar">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="search-input" placeholder="ค้นหาระบบงาน หรือคำอธิบาย..." autocomplete="off" />
+          </div>
+          <div id="category-filters" class="category-filters" role="tablist" aria-label="หมวดหมู่ระบบงาน"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- พื้นที่แสดงการ์ดระบบงาน -->
+    <main class="main-content">
+      <div class="container">
+        <div id="status-message" class="status-message">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>กำลังโหลดข้อมูลระบบงานจากฐานข้อมูล...</p>
+        </div>
+
+        <div id="apps-container" class="apps-container"></div>
+      </div>
+    </main>
+
+    <!-- ส่วนท้าย -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p id="footer-text" class="footer-text">© 2569 ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่</p>
+        <p id="contact-info" class="contact-info">ติดต่อผู้ดูแลระบบ / แจ้งปัญหาการใช้งาน: ผู้ดูแลระบบหลักสูตร วท.บ. เคมีอุตสาหกรรม</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
