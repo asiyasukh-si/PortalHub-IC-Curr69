@@ -6,7 +6,8 @@ const CONFIG = {
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=0&single=true&output=csv',
   SETTINGS_CSV_URL:
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=2&single=true&output=csv',
-  // รหัสสีดัมมี่โทนกรมท่าเดิม (หากยังไม่ได้แก้ในชีต จะคงโทนม่วง-เหลืองพาสเทลไว้ให้โดยอัตโนมัติ)
+  DEFAULT_PASSCODE_URL:
+    'https://script.google.com/macros/s/AKfycbwoKTmf0aNj8-LM7pUo-KFfbY59dYwW7WsLVuJP4aDV6MUqyXd2l3L2qzFPhYQMI-XR0w/exec',
   LEGACY_NAVY_OVERLAY: '#0f2942',
   LEGACY_NAVY_PRIMARY: '#1e3a5f',
 };
@@ -29,7 +30,7 @@ const ICONS = {
 };
 
 // =========================================================
-// ตัวแปลง CSV เป็น Array of Objects (รองรับเครื่องหมายคำพูดและขึ้นบรรทัดใหม่)
+// ตัวแปลง CSV เป็น Array of Objects
 // =========================================================
 function parseCSV(csvText) {
   const cleanText = csvText.replace(/^\uFEFF/, '');
@@ -94,7 +95,6 @@ function parseCSV(csvText) {
     });
 }
 
-// แปลงรหัสสี Hex เป็น RGBA สำหรับ Overlay
 function hexToRgba(hex, alpha) {
   const cleaned = hex.replace('#', '').trim();
   if (!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
@@ -104,7 +104,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// ป้องกัน XSS เมื่อนำข้อความจากชีตไปแสดงผล
 function escapeHtml(str) {
   return String(str || '')
     .replace(/&/g, '&amp;')
@@ -112,6 +111,10 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function isValidHttpUrl(url) {
+  return /^https?:\/\/.+/i.test((url || '').trim());
 }
 
 // =========================================================
@@ -127,7 +130,6 @@ function applySettings(settingsRows) {
 
   const root = document.documentElement;
 
-  // ข้อความส่วนหัวและส่วนท้าย
   if (settings.site_title) {
     document.title = settings.site_title;
     document.getElementById('site-title').textContent = settings.site_title;
@@ -197,7 +199,7 @@ function applySettings(settingsRows) {
     }
   }
 
-  // สีหลักของธีม (ใช้ค่าจากชีตเมื่อมีการเปลี่ยนจากค่าดัมมี่กรมท่าเดิม)
+  // สีหลักของธีม
   const primaryColor = (settings.primary_color || '').trim().toLowerCase();
   if (primaryColor && primaryColor !== CONFIG.LEGACY_NAVY_PRIMARY && /^#[0-9a-f]{6}$/i.test(primaryColor)) {
     root.style.setProperty('--primary', primaryColor);
@@ -235,10 +237,6 @@ function renderCategoryFilters() {
   });
 }
 
-function isValidHttpUrl(url) {
-  return /^https?:\/\/.+/i.test((url || '').trim());
-}
-
 function renderApps() {
   const container = document.getElementById('apps-container');
   const statusEl = document.getElementById('status-message');
@@ -264,7 +262,6 @@ function renderApps() {
 
   statusEl.classList.add('hidden');
 
-  // จัดกลุ่มตามหมวดหมู่
   const grouped = new Map();
   filtered.forEach((app) => {
     const cat = app.category || 'อื่นๆ';
@@ -356,7 +353,21 @@ async function initPortal() {
 
     applySettings(parseCSV(settingsCsv));
 
-    allApps = parseCSV(appsCsv)
+    const parsedApps = parseCSV(appsCsv);
+
+    // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ (แม้จะซ่อนการ์ดออกจากบอร์ด)
+    const passcodeApp = parsedApps.find(
+      (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
+    );
+    const passcodeBtn = document.getElementById('btn-passcode-manager');
+    if (passcodeBtn) {
+      const targetUrl =
+        (passcodeApp && isValidHttpUrl(passcodeApp.app_url) && passcodeApp.app_url.trim()) ||
+        CONFIG.DEFAULT_PASSCODE_URL;
+      passcodeBtn.href = targetUrl;
+    }
+
+    allApps = parsedApps
       .filter((app) => String(app.is_visible || '').toUpperCase() === 'TRUE')
       .sort((a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999));
 
