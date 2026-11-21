@@ -1,5 +1,6 @@
 /* =========================================================
    โทนสีพาสเทล ม่วง - เหลือง (Lavender & Buttercream Theme)
+   พร้อมระบบจัดเรียงการ์ดสมมาตรกึ่งกลางอัตโนมัติ (Centered Symmetry)
    ========================================================= */
 :root {
   --primary: #7c63a8;
@@ -305,7 +306,7 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
 }
 
 /* =========================================================
-   ส่วนแสดงการ์ดระบบงาน
+   ส่วนแสดงการ์ดระบบงานแบบสมมาตรกึ่งกลางอัตโนมัติ
    ========================================================= */
 .main-content {
   flex: 1;
@@ -338,40 +339,55 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
 }
 
 .category-section {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
 }
 
 .category-heading {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 14px;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-main);
-  margin-bottom: 16px;
-  padding-left: 4px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.category-heading::before,
+.category-heading::after {
+  content: '';
+  height: 3px;
+  width: 36px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .category-heading::before {
-  content: '';
-  width: 10px;
-  height: 22px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--accent-yellow-dot) 100%);
-  display: inline-block;
+  background: linear-gradient(90deg, var(--accent-yellow-dot) 0%, var(--primary) 100%);
 }
 
+.category-heading::after {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent-yellow-dot) 100%);
+}
+
+/* Flex Container จัดการ์ดกึ่งกลางทุกแถวโดยคงขนาดเท่ากัน */
 .apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 20px;
 }
 
-/* การ์ดแอปพลิเคชัน */
+/* การ์ดแอปพลิเคชัน (บนคอมพิวเตอร์: สูงสุด 3 ใบต่อแถว เท่ากันทุกใบ) */
 .app-card {
   position: relative;
   display: flex;
   flex-direction: column;
+  flex: 0 0 calc((100% - 40px) / 3);
+  max-width: 360px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 20px;
@@ -556,8 +572,15 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
 }
 
 /* =========================================================
-   Responsive สำหรับมือถือและแท็บเล็ต
+   Responsive สำหรับแท็บเล็ตและมือถือ
    ========================================================= */
+@media (max-width: 960px) {
+  .app-card {
+    flex: 0 0 calc((100% - 20px) / 2);
+    max-width: 420px;
+  }
+}
+
 @media (max-width: 760px) {
   .hero-top-row {
     flex-direction: column;
@@ -599,7 +622,22 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
     justify-content: center;
   }
 
-  .apps-grid {
-    grid-template-columns: 1fr;
+  .search-box {
+    max-width: 100%;
+  }
+
+  .category-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .category-heading::before,
+  .category-heading::after {
+    width: 24px;
+  }
+
+  .app-card {
+    flex: 0 0 100%;
+    max-width: 480px;
   }
 }
