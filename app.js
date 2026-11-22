@@ -6,6 +6,8 @@ const CONFIG = {
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=0&single=true&output=csv',
   SETTINGS_CSV_URL:
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=2&single=true&output=csv',
+  EXTERNAL_LINKS_CSV_URL:
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=1362478614&single=true&output=csv',
   DEFAULT_PASSCODE_URL:
     'https://script.google.com/macros/s/AKfycbwoKTmf0aNj8-LM7pUo-KFfbY59dYwW7WsLVuJP4aDV6MUqyXd2l3L2qzFPhYQMI-XR0w/exec',
   LEGACY_NAVY_OVERLAY: '#0f2942',
@@ -334,7 +336,53 @@ function renderApps() {
 }
 
 // =========================================================
-// เริ่มต้นโหลดข้อมูลจาก Google Sheets ทั้ง 2 แท็บพร้อมกัน
+// แสดงแถบปุ่มลิงก์หน่วยงานภายนอกจากแท็บ External_Links
+// =========================================================
+function renderExternalLinks(linkRows) {
+  const section = document.getElementById('external-links-section');
+  const listEl = document.getElementById('external-links-list');
+  if (!section || !listEl) return;
+
+  const visibleLinks = (linkRows || [])
+    .filter(
+      (item) =>
+        String(item.is_visible || '').toUpperCase() === 'TRUE' &&
+        item.link_title &&
+        isValidHttpUrl(item.link_url)
+    )
+    .sort((a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999));
+
+  if (visibleLinks.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  listEl.innerHTML = visibleLinks
+    .map(
+      (item) => `
+      <a
+        class="external-link-btn"
+        href="${escapeHtml(item.link_url.trim())}"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="${escapeHtml(item.tooltip || item.link_title)}"
+      >
+        <span>${escapeHtml(item.link_title)}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </a>
+    `
+    )
+    .join('');
+
+  section.classList.remove('hidden');
+}
+
+// =========================================================
+// เริ่มต้นโหลดข้อมูลจาก Google Sheets
 // =========================================================
 async function initPortal() {
   const statusEl = document.getElementById('status-message');
@@ -355,7 +403,7 @@ async function initPortal() {
 
     const parsedApps = parseCSV(appsCsv);
 
-    // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ (แม้จะซ่อนการ์ดออกจากบอร์ด)
+    // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
     const passcodeApp = parsedApps.find(
       (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
     );
@@ -373,6 +421,16 @@ async function initPortal() {
 
     renderCategoryFilters();
     renderApps();
+
+    // โหลดแท็บ External_Links แยกอิสระ (หากยังไม่ได้ใส่ลิงก์ CSV จะไม่กระทบส่วนหลัก)
+    if (isValidHttpUrl(CONFIG.EXTERNAL_LINKS_CSV_URL)) {
+      fetch(CONFIG.EXTERNAL_LINKS_CSV_URL, { cache: 'no-store' })
+        .then((res) => (res.ok ? res.text() : ''))
+        .then((csvText) => {
+          if (csvText) renderExternalLinks(parseCSV(csvText));
+        })
+        .catch((err) => console.warn('โหลดแท็บ External_Links ไม่สำเร็จ:', err));
+    }
   } catch (err) {
     console.error(err);
     statusEl.innerHTML = `
