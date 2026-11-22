@@ -1,6 +1,6 @@
 /* =========================================================
    โทนสีพาสเทล ม่วง - เหลือง (Lavender & Buttercream Theme)
-   พร้อมระบบจัดเรียงการ์ดสมมาตรกึ่งกลางอัตโนมัติ (Centered Symmetry)
+   พร้อมระบบจัดเรียงการ์ดสมมาตรกึ่งกลางอัตโนมัติ และแถบลิงก์ภายนอกด้านล่าง
    ========================================================= */
 :root {
   --primary: #7c63a8;
@@ -41,7 +41,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
+h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn, .external-link-btn {
   font-family: 'Prompt', sans-serif;
 }
 
@@ -544,6 +544,72 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
 }
 
 /* =========================================================
+   แถบปุ่มลิงก์หน่วยงานภายนอกด้านล่าง (External Links Bar)
+   ========================================================= */
+.external-links-section {
+  margin-top: 26px;
+  padding: 24px 26px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px);
+}
+
+.external-links-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.external-links-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.external-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid var(--primary-border);
+  box-shadow: 0 3px 10px rgba(93, 70, 138, 0.06);
+  transition: all 0.2s ease;
+}
+
+.external-link-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.external-link-btn:hover {
+  background: var(--accent-yellow-bg);
+  border-color: var(--accent-yellow-border);
+  color: var(--accent-yellow-text);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(133, 93, 14, 0.14);
+}
+
+.external-link-btn:hover svg {
+  color: var(--accent-yellow-text);
+  transform: translate(2px, -2px);
+}
+
+/* =========================================================
    ส่วนท้าย (Footer)
    ========================================================= */
 .site-footer {
@@ -639,5 +705,14 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn {
   .app-card {
     flex: 0 0 100%;
     max-width: 480px;
+  }
+
+  .external-links-section {
+    padding: 18px 16px;
+  }
+
+  .external-link-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
