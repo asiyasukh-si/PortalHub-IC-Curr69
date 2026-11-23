@@ -8,8 +8,16 @@ const CONFIG = {
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=2&single=true&output=csv',
   EXTERNAL_LINKS_CSV_URL:
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiN8jIgT62ylOypdPgsYaEskjC6MF7LeZH3d7J0e2BWJSkZ_ZrE2hoGgNqUJtLeUvkfMzx4bXBenJZ/pub?gid=1362478614&single=true&output=csv',
+  DEFAULT_TEACHING_LOAD_URL:
+    'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
   DEFAULT_PASSCODE_URL:
-    'https://script.google.com/macros/s/AKfycbwoKTmf0aNj8-LM7pUo-KFfbY59dYwW7WsLVuJP4aDV6MUqyXd2l3L2qzFPhYQMI-XR0w/exec',
+    'https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec',
+  FALLBACK_APP_URLS: {
+    APP03:
+      'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
+    APP04:
+      'https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec',
+  },
   LEGACY_NAVY_OVERLAY: '#0f2942',
   LEGACY_NAVY_PRIMARY: '#1e3a5f',
 };
@@ -401,7 +409,15 @@ async function initPortal() {
 
     applySettings(parseCSV(settingsCsv));
 
-    const parsedApps = parseCSV(appsCsv);
+    const parsedApps = parseCSV(appsCsv).map((app) => {
+      const appId = (app.app_id || '').trim().toUpperCase();
+      const rawUrl = (app.app_url || '').trim();
+      const fallbackUrl = CONFIG.FALLBACK_APP_URLS[appId] || '';
+      return {
+        ...app,
+        app_url: isValidHttpUrl(rawUrl) ? rawUrl : fallbackUrl,
+      };
+    });
 
     // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
     const passcodeApp = parsedApps.find(
