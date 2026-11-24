@@ -37,8 +37,17 @@ const ICONS = {
   chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
   folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
   sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"></path></svg>`,
+  megaphone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
+  clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
   default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>`,
 };
+
+function getDisplayZone(app) {
+  const raw = String((app && app.display_zone) || '').trim().toUpperCase();
+  return raw === 'TOP_BAR' ? 'TOP_BAR' : 'MAIN_GRID';
+}
 
 // =========================================================
 // ตัวแปลง CSV เป็น Array of Objects
@@ -224,6 +233,9 @@ function applySettings(settingsRows) {
 function renderCategoryFilters() {
   const filterWrap = document.getElementById('category-filters');
   const categories = ['ทั้งหมด', ...new Set(allApps.map((app) => app.category || 'อื่นๆ'))];
+  if (!categories.includes(activeCategory)) {
+    activeCategory = 'ทั้งหมด';
+  }
 
   filterWrap.innerHTML = categories
     .map(
@@ -248,6 +260,58 @@ function renderCategoryFilters() {
   });
 }
 
+function renderTopBar(topBarApps) {
+  const section = document.getElementById('top-bar-section');
+  const container = document.getElementById('top-bar-container');
+  if (!section || !container) return;
+
+  if (!topBarApps || topBarApps.length === 0) {
+    container.innerHTML = '';
+    section.classList.add('hidden');
+    return;
+  }
+
+  const colCount = Math.min(Math.max(topBarApps.length, 1), 4);
+  container.className = `top-bar-grid cols-${colCount}`;
+
+  container.innerHTML = topBarApps
+    .map((app) => {
+      const badgeType = (app.badge_type || 'active').trim().toLowerCase();
+      const validUrl = isValidHttpUrl(app.app_url);
+      const isDisabled = badgeType === 'coming_soon' || !validUrl;
+      const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
+      const badgeHtml = app.badge_text
+        ? `<span class="app-badge quick-card-badge badge-${escapeHtml(badgeType)}">${escapeHtml(app.badge_text)}</span>`
+        : '';
+      const descText = (app.description || app.target_users || '').trim();
+      const tooltipText = [app.app_title, descText].filter(Boolean).join(' — ');
+
+      const innerHtml = `
+        <div class="quick-card-icon" aria-hidden="true">${iconSvg}</div>
+        <div class="quick-card-body">
+          <div class="quick-card-top">
+            <h3 class="quick-card-title">${escapeHtml(app.app_title)}</h3>
+            ${badgeHtml}
+          </div>
+          ${descText ? `<p class="quick-card-desc">${escapeHtml(descText)}</p>` : ''}
+        </div>
+        ${
+          !isDisabled
+            ? `<svg class="quick-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>`
+            : ''
+        }
+      `;
+
+      if (isDisabled) {
+        return `<div class="quick-card is-disabled" aria-disabled="true" title="${escapeHtml(tooltipText)}">${innerHtml}</div>`;
+      }
+      return `<a class="quick-card" href="${escapeHtml(app.app_url.trim())}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(tooltipText)}">${innerHtml}</a>`;
+    })
+    .join('');
+
+  section.classList.remove('hidden');
+}
+
 function renderApps() {
   const container = document.getElementById('apps-container');
   const statusEl = document.getElementById('status-message');
@@ -264,6 +328,11 @@ function renderApps() {
     return haystack.includes(query);
   });
 
+  const topBarApps = filtered.filter((app) => getDisplayZone(app) === 'TOP_BAR');
+  const mainGridApps = filtered.filter((app) => getDisplayZone(app) !== 'TOP_BAR');
+
+  renderTopBar(topBarApps);
+
   if (filtered.length === 0) {
     container.innerHTML = '';
     statusEl.innerHTML = `<p>ไม่พบระบบงานที่ตรงกับเงื่อนไขการค้นหา</p>`;
@@ -273,8 +342,13 @@ function renderApps() {
 
   statusEl.classList.add('hidden');
 
+  if (mainGridApps.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
   const grouped = new Map();
-  filtered.forEach((app) => {
+  mainGridApps.forEach((app) => {
     const cat = app.category || 'อื่นๆ';
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat).push(app);
