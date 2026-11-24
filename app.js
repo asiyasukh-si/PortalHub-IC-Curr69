@@ -17,6 +17,12 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
     APP04:
       'https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec',
+    APP05:
+      'https://script.google.com/macros/s/AKfycbzhULNRtnleMSXnq83ANydLPLFYcjXt5puFc6xNvnwBnric6LgY1gD0zUDaI84cFc9-Pg/exec',
+    APP06:
+      'https://script.google.com/macros/s/AKfycbxdSjpQ5uw1Q0dFq4X-bJVcAf2covmn4ZjE4x3FGpuBQDglbEs2cNe8a2yWpBMH5ngR/exec',
+    APP07:
+      'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
   },
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
   LEGACY_NAVY_OVERLAY: '#0f2942',
@@ -471,8 +477,28 @@ function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
     const appId = (app.app_id || '').trim().toUpperCase();
     const rawUrl = (app.app_url || '').trim();
     const fallbackUrl = CONFIG.FALLBACK_APP_URLS[appId] || '';
+    let iconName = (app.icon_name || '').trim().toLowerCase();
+    let badgeType = (app.badge_type || 'active').trim().toLowerCase();
+    let appTitle = (app.app_title || '').trim();
+    let description = (app.description || '').trim();
+
+    if (appId === 'APP06') {
+      if (!iconName || iconName === 'sparkles' || iconName === 'default') iconName = 'clipboard';
+      if (badgeType === 'restricted') badgeType = 'active';
+    } else if (appId === 'APP07') {
+      if (!iconName || iconName === 'folder' || iconName === 'default') iconName = 'megaphone';
+      if (appTitle === 'ประกาศ') appTitle = 'ประกาศสำคัญและข่าวสาร';
+      if (description === 'สำหรับประกาศข่าว') {
+        description = 'ศูนย์รวมประกาศภาควิชา คณะ และมหาวิทยาลัย สำหรับนักศึกษาและคณาจารย์';
+      }
+    }
+
     return {
       ...app,
+      app_title: appTitle,
+      description: description,
+      icon_name: iconName,
+      badge_type: badgeType,
       app_url: isValidHttpUrl(rawUrl) ? rawUrl : fallbackUrl,
     };
   });
