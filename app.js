@@ -18,6 +18,7 @@ const CONFIG = {
     APP04:
       'https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec',
   },
+  CACHE_KEY: 'ic2569_portal_hub_cache_v1',
   LEGACY_NAVY_OVERLAY: '#0f2942',
   LEGACY_NAVY_PRIMARY: '#1e3a5f',
 };
@@ -389,11 +390,60 @@ function renderExternalLinks(linkRows) {
   section.classList.remove('hidden');
 }
 
+function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
+  applySettings(parseCSV(settingsCsv));
+
+  const parsedApps = parseCSV(appsCsv).map((app) => {
+    const appId = (app.app_id || '').trim().toUpperCase();
+    const rawUrl = (app.app_url || '').trim();
+    const fallbackUrl = CONFIG.FALLBACK_APP_URLS[appId] || '';
+    return {
+      ...app,
+      app_url: isValidHttpUrl(rawUrl) ? rawUrl : fallbackUrl,
+    };
+  });
+
+  // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
+  const passcodeApp = parsedApps.find(
+    (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
+  );
+  const passcodeBtn = document.getElementById('btn-passcode-manager');
+  if (passcodeBtn) {
+    const targetUrl =
+      (passcodeApp && isValidHttpUrl(passcodeApp.app_url) && passcodeApp.app_url.trim()) ||
+      CONFIG.DEFAULT_PASSCODE_URL;
+    passcodeBtn.href = targetUrl;
+  }
+
+  allApps = parsedApps
+    .filter((app) => String(app.is_visible || '').toUpperCase() === 'TRUE')
+    .sort((a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999));
+
+  renderCategoryFilters();
+  renderApps();
+
+  if (extLinksCsv) {
+    renderExternalLinks(parseCSV(extLinksCsv));
+  }
+}
+
 // =========================================================
-// เริ่มต้นโหลดข้อมูลจาก Google Sheets
+// เริ่มต้นโหลดข้อมูลจาก Google Sheets (พร้อมระบบ Instant Cache)
 // =========================================================
 async function initPortal() {
   const statusEl = document.getElementById('status-message');
+  let renderedFromCache = false;
+
+  try {
+    const cachedRaw = localStorage.getItem(CONFIG.CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      if (cached && cached.settingsCsv && cached.appsCsv) {
+        processPortalData(cached.settingsCsv, cached.appsCsv, cached.extLinksCsv || '');
+        renderedFromCache = true;
+      }
+    }
+  } catch (e) {}
 
   try {
     const [settingsRes, appsRes] = await Promise.all([
@@ -406,54 +456,34 @@ async function initPortal() {
     }
 
     const [settingsCsv, appsCsv] = await Promise.all([settingsRes.text(), appsRes.text()]);
+    let extLinksCsv = '';
 
-    applySettings(parseCSV(settingsCsv));
-
-    const parsedApps = parseCSV(appsCsv).map((app) => {
-      const appId = (app.app_id || '').trim().toUpperCase();
-      const rawUrl = (app.app_url || '').trim();
-      const fallbackUrl = CONFIG.FALLBACK_APP_URLS[appId] || '';
-      return {
-        ...app,
-        app_url: isValidHttpUrl(rawUrl) ? rawUrl : fallbackUrl,
-      };
-    });
-
-    // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
-    const passcodeApp = parsedApps.find(
-      (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
-    );
-    const passcodeBtn = document.getElementById('btn-passcode-manager');
-    if (passcodeBtn) {
-      const targetUrl =
-        (passcodeApp && isValidHttpUrl(passcodeApp.app_url) && passcodeApp.app_url.trim()) ||
-        CONFIG.DEFAULT_PASSCODE_URL;
-      passcodeBtn.href = targetUrl;
-    }
-
-    allApps = parsedApps
-      .filter((app) => String(app.is_visible || '').toUpperCase() === 'TRUE')
-      .sort((a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999));
-
-    renderCategoryFilters();
-    renderApps();
-
-    // โหลดแท็บ External_Links แยกอิสระ (หากยังไม่ได้ใส่ลิงก์ CSV จะไม่กระทบส่วนหลัก)
     if (isValidHttpUrl(CONFIG.EXTERNAL_LINKS_CSV_URL)) {
-      fetch(CONFIG.EXTERNAL_LINKS_CSV_URL, { cache: 'no-store' })
-        .then((res) => (res.ok ? res.text() : ''))
-        .then((csvText) => {
-          if (csvText) renderExternalLinks(parseCSV(csvText));
-        })
-        .catch((err) => console.warn('โหลดแท็บ External_Links ไม่สำเร็จ:', err));
+      try {
+        const extRes = await fetch(CONFIG.EXTERNAL_LINKS_CSV_URL, { cache: 'no-store' });
+        if (extRes.ok) extLinksCsv = await extRes.text();
+      } catch (err) {
+        console.warn('โหลดแท็บ External_Links ไม่สำเร็จ:', err);
+      }
     }
+
+    processPortalData(settingsCsv, appsCsv, extLinksCsv);
+
+    try {
+      localStorage.setItem(
+        CONFIG.CACHE_KEY,
+        JSON.stringify({ settingsCsv, appsCsv, extLinksCsv, updatedAt: Date.now() })
+      );
+    } catch (e) {}
   } catch (err) {
     console.error(err);
-    statusEl.innerHTML = `
-      <p><strong>ไม่สามารถโหลดข้อมูลจากฐานข้อมูลได้ในขณะนี้</strong></p>
-      <p style="margin-top: 6px; font-size: 0.9rem;">กรุณาตรวจสอบการเผยแพร่ลิงก์ CSV ของแท็บ Portal_Apps และ Portal_Settings ใน Google Sheets แล้วลองรีเฟรชหน้าเว็บอีกครั้ง</p>
-    `;
-    statusEl.classList.remove('hidden');
+    if (!renderedFromCache) {
+      statusEl.innerHTML = `
+        <p><strong>ไม่สามารถโหลดข้อมูลจากฐานข้อมูลได้ในขณะนี้</strong></p>
+        <p style="margin-top: 6px; font-size: 0.9rem;">กรุณาตรวจสอบการเผยแพร่ลิงก์ CSV ของแท็บ Portal_Apps และ Portal_Settings ใน Google Sheets แล้วลองรีเฟรชหน้าเว็บอีกครั้ง</p>
+      `;
+      statusEl.classList.remove('hidden');
+    }
   }
 }
 
