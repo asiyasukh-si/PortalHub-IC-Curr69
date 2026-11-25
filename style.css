@@ -189,13 +189,63 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn, .ext
   color: var(--text-muted);
 }
 
-/* ปุ่มจัดการรหัสผ่านและปุ่มจัดการ Portal (Admin) มุมขวาบน */
+/* ปุ่มสลับมุมมองสำหรับผู้ใช้งาน & ปุ่มจัดการรหัสผ่านมุมขวาบน */
 .hero-actions {
   flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+.user-view-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--primary-border);
+  padding: 4px 6px;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(124, 99, 168, 0.08);
+}
+
+.user-view-label {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+.user-view-btn {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.user-view-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
+.user-view-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(124, 99, 168, 0.25);
+}
+
+body.theme-hybrid .user-view-switcher {
+  display: none;
 }
 
 .passcode-btn {
@@ -1514,4 +1564,682 @@ a.quick-card:hover .quick-card-arrow {
   border-radius: 12px;
   font-size: 0.9rem;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================================================
+   แถบสลับโหมดพรีวิว (Preview Switcher Bar - โทนพาสเทลม่วง-เหลือง)
+   ========================================================= */
+.design-preview-bar {
+  background: linear-gradient(90deg, #ede4fb 0%, #fef3c7 100%);
+  color: #3d2a5d;
+  border-bottom: 2px solid #e6c86e;
+  padding: 8px 0;
+  font-size: 0.84rem;
+}
+
+.preview-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preview-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: 500;
+}
+
+.preview-tag {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #6d519c;
+  color: #ffffff;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.preview-btn-group {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #d4c4ef;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.preview-mode-btn,
+.preview-layout-btn {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #4f3a75;
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-mode-btn:hover,
+.preview-layout-btn:hover {
+  color: #2f1f4d;
+  background: rgba(235, 224, 252, 0.65);
+}
+
+.preview-mode-btn.active,
+.preview-layout-btn.active {
+  background: #6d519c;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(109, 81, 156, 0.25);
+}
+
+/* ปุ่มเลือกธีมในหน้า Admin (Admin Theme Switcher Cards) */
+.admin-theme-switcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.admin-theme-option-btn {
+  text-align: left;
+  background: #ffffff;
+  border: 2px solid #d8c8f2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Sarabun', sans-serif;
+}
+
+.admin-theme-option-btn:hover {
+  border-color: #7c63a8;
+  background: #fdfbff;
+}
+
+.admin-theme-option-btn.active {
+  border-color: #6d519c;
+  background: linear-gradient(135deg, #f3ecfd 0%, #fef6d8 100%);
+  box-shadow: 0 4px 12px rgba(109, 81, 156, 0.16);
+}
+
+.admin-theme-opt-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #382659;
+  margin-bottom: 4px;
+}
+
+.admin-theme-opt-desc {
+  font-size: 0.8rem;
+  color: #62537d;
+  line-height: 1.45;
+}
+
+/* ซ่อนเมนูแนวนอนแบบคลาสสิกในโหมดพาสเทลเดิม */
+.classic-menubar {
+  display: none;
+}
+
+/* =========================================================
+   โหมดลูกผสมพาสเทลม่วง-เหลือง (Hybrid Classic-Pastel Institutional Theme)
+   ========================================================= */
+body.theme-hybrid {
+  background-color: #f8f5fd;
+  color: #33264a;
+}
+
+body.theme-hybrid .bg-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 240, 253, 0.94) 0%,
+    rgba(253, 250, 242, 0.94) 55%,
+    rgba(254, 247, 224, 0.94) 100%
+  ) !important;
+}
+
+body.theme-hybrid .hero-header {
+  padding: 0;
+  background: linear-gradient(135deg, #e9dff9 0%, #f3ecfc 52%, #fef4d1 100%);
+  border-bottom: 3px solid #e6c665;
+  box-shadow: 0 4px 14px rgba(109, 81, 156, 0.1);
+  margin-bottom: 18px;
+}
+
+body.theme-hybrid .hero-inner {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 20px 20px 0;
+}
+
+body.theme-hybrid .hero-top-row {
+  align-items: center;
+  padding-bottom: 16px;
+}
+
+body.theme-hybrid .dept-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 2px solid #e6c665;
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 3px 10px rgba(109, 81, 156, 0.1);
+}
+
+body.theme-hybrid .dept-badge {
+  background: #fef6d8;
+  color: #7c540b;
+  border: 1px solid #eccf78;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 11px;
+  margin-bottom: 6px;
+}
+
+body.theme-hybrid .site-title {
+  color: #3b2860;
+  font-size: clamp(1.35rem, 2.3vw, 1.75rem);
+  margin-bottom: 4px;
+}
+
+body.theme-hybrid .site-subtitle {
+  color: #5d4a82;
+  font-size: 0.94rem;
+}
+
+body.theme-hybrid .passcode-btn {
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4a3570;
+  border: 1.5px solid #cbb6ec;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(109, 81, 156, 0.08);
+}
+
+body.theme-hybrid .passcode-btn:hover {
+  background: #fef6d8;
+  color: #7c540b;
+  border-color: #e6c665;
+}
+
+/* แถบเมนูนำทางแนวนอนแบบเว็บทางการดั้งเดิม (โทนม่วงพาสเทล-เหลืองครีม) */
+body.theme-hybrid .classic-menubar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #dfd1f5;
+  margin: 0 -20px;
+  padding: 0 20px;
+  border-top: 1px solid #cbb8eb;
+}
+
+.classic-menubar-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.classic-nav-item {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #3f2b63;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #cbb8eb;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.classic-nav-item:first-child {
+  border-left: 1px solid #cbb8eb;
+}
+
+.classic-nav-item:hover {
+  background: rgba(255, 255, 255, 0.55);
+  color: #2b1b47;
+}
+
+.classic-nav-item.active {
+  background: #fef3c7;
+  color: #6b4706;
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 #d9a72a;
+}
+
+.classic-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.classic-view-label {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #4f3a75;
+}
+
+.classic-view-btn {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #4a3570;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid #bfa8e6;
+  padding: 4px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.classic-view-btn:hover {
+  background: #ffffff;
+}
+
+.classic-view-btn.active {
+  background: #6d519c;
+  color: #ffffff;
+  border-color: #6d519c;
+  font-weight: 600;
+}
+
+/* แถบค้นหาและตัวกรองด้านล่างแบนเนอร์ในโหมดลูกผสมพาสเทล */
+body.theme-hybrid .toolbar {
+  background: #ffffff;
+  margin: 0 -20px;
+  padding: 12px 20px;
+  border-top: none;
+  border-bottom: 1px solid #dcd0f0;
+}
+
+body.theme-hybrid .search-box input {
+  border-radius: 8px;
+  border: 1.5px solid #d1c1ec;
+  background: #faf7fe;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+body.theme-hybrid .role-switcher {
+  border-radius: 8px;
+  background: #f5effd;
+  border: 1px solid #d8c8f2;
+}
+
+body.theme-hybrid .role-pill {
+  border-radius: 6px;
+}
+
+body.theme-hybrid .role-pill.active {
+  background: #6d519c;
+  color: #ffffff;
+}
+
+body.theme-hybrid .category-filters {
+  display: none;
+}
+
+/* แถบประกาศและบริการด่วนในโหมดลูกผสมพาสเทล */
+body.theme-hybrid .live-announcements-bar {
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1.5px solid #d8c8f2;
+  border-left: 5px solid #7c63a8;
+  box-shadow: 0 2px 8px rgba(109, 81, 156, 0.06);
+}
+
+body.theme-hybrid .live-ann-badge {
+  border-radius: 6px;
+  background: #6d519c;
+}
+
+body.theme-hybrid .live-ann-item {
+  border-radius: 6px;
+  background: #faf7fe;
+  border-color: #dfd2f5;
+}
+
+body.theme-hybrid .top-bar-section {
+  background: #ffffff;
+  border: 1.5px solid #d8c8f2;
+  border-top: 3px solid #e6c665;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(109, 81, 156, 0.06);
+  padding: 14px 16px;
+}
+
+body.theme-hybrid .top-bar-label {
+  border-radius: 6px;
+  background: #fef6d8;
+  border-color: #eccf78;
+  color: #7c540b;
+}
+
+body.theme-hybrid .quick-card {
+  border-radius: 8px;
+  background: #faf7fe;
+  border: 1px solid #d8c8f2;
+  border-left: 4px solid #7c63a8;
+  box-shadow: none;
+}
+
+body.theme-hybrid a.quick-card:hover {
+  background: #fef9e7;
+  border-color: #d9a72a;
+  transform: none;
+}
+
+/* กล่องหมวดหมู่ระบบงานแบบมีหัวแถบสีม่วงพาสเทลคาดทอง (Structured Pastel Panel Box) */
+.hybrid-panel-box {
+  background: #ffffff;
+  border: 1.5px solid #d5c5f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(109, 81, 156, 0.06);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.hybrid-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: linear-gradient(90deg, #e7dcf8 0%, #f3ecfd 65%, #fef6d8 100%);
+  color: #3b2860;
+  padding: 11px 18px;
+  border-bottom: 2.5px solid #e6c665;
+}
+
+body.theme-hybrid .category-heading {
+  color: #3b2860;
+  margin: 0;
+  font-size: 1.06rem;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+body.theme-hybrid .category-heading::before,
+body.theme-hybrid .category-heading::after {
+  display: none;
+}
+
+.hybrid-panel-count {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #6d519c;
+  border: 1px solid #d1c1ec;
+  padding: 2px 11px;
+  border-radius: 999px;
+}
+
+body.theme-hybrid .apps-grid {
+  padding: 22px 24px;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  background: #fcfaff;
+}
+
+body.theme-hybrid .app-card {
+  flex: 0 1 calc((100% - 40px) / 3);
+  max-width: 350px;
+  min-width: 280px;
+  background: #ffffff;
+  border: 1.5px solid #dcd0f0;
+  border-top: 3.5px solid #8b72b8;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(109, 81, 156, 0.05);
+  backdrop-filter: none;
+  padding: 20px;
+}
+
+/* จัดสมมาตรกึ่งกลางตามจำนวนการ์ดในหมวดหมู่ (1, 2, 4 หรือหลายใบ) */
+body.theme-hybrid .apps-grid.grid-count-1 .app-card {
+  flex: 0 1 480px;
+  max-width: 480px;
+}
+
+body.theme-hybrid .apps-grid.grid-count-2 .app-card {
+  flex: 0 1 calc((100% - 24px) / 2);
+  max-width: 440px;
+}
+
+body.theme-hybrid .apps-grid.grid-count-4 .app-card {
+  flex: 0 1 calc((100% - 24px) / 2);
+  max-width: 440px;
+}
+
+@media (max-width: 960px) {
+  body.theme-hybrid .app-card,
+  body.theme-hybrid .apps-grid.grid-count-2 .app-card,
+  body.theme-hybrid .apps-grid.grid-count-4 .app-card {
+    flex: 0 1 calc((100% - 20px) / 2);
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 680px) {
+  body.theme-hybrid .app-card,
+  body.theme-hybrid .apps-grid.grid-count-1 .app-card,
+  body.theme-hybrid .apps-grid.grid-count-2 .app-card,
+  body.theme-hybrid .apps-grid.grid-count-4 .app-card {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}
+
+body.theme-hybrid .app-card::before {
+  display: none;
+}
+
+body.theme-hybrid .app-card:hover {
+  transform: translateY(-2px);
+  border-color: #7c63a8;
+  box-shadow: 0 6px 16px rgba(109, 81, 156, 0.12);
+}
+
+body.theme-hybrid .app-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #efe8fa 0%, #fef6d8 100%);
+  border: 1px solid #d5c5f0;
+  color: #5e448a;
+}
+
+.hybrid-code-badge {
+  display: inline-block;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f3ecfd;
+  color: #543b80;
+  border: 1px solid #d5c5f0;
+  padding: 2px 9px;
+  border-radius: 6px;
+}
+
+body.theme-hybrid .app-badge {
+  border-radius: 6px;
+}
+
+body.theme-hybrid .app-meta {
+  border-radius: 8px;
+  background: #faf7fe;
+  border: 1px solid #e6dcf7;
+}
+
+body.theme-hybrid .app-btn {
+  border-radius: 8px;
+  background: #6d519c;
+  padding: 9px 14px;
+  font-size: 0.9rem;
+}
+
+body.theme-hybrid .app-btn:hover {
+  background: #583e85;
+}
+
+body.theme-hybrid .app-btn.app-btn-secondary {
+  background: #fef6d8;
+  color: #78520a;
+  border: 1.5px solid #e6c665;
+}
+
+body.theme-hybrid .app-btn.app-btn-secondary:hover {
+  background: #fdeba8;
+}
+
+/* มุมมองตารางสารบัญ (Classic Table Directory View - โทนพาสเทลม่วง-เหลือง) */
+.hybrid-table-wrap {
+  overflow-x: auto;
+}
+
+.hybrid-directory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  background: #ffffff;
+}
+
+.hybrid-directory-table th,
+.hybrid-directory-table td {
+  border-bottom: 1px solid #e6dcf7;
+  border-right: 1px solid #e6dcf7;
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.hybrid-directory-table th:last-child,
+.hybrid-directory-table td:last-child {
+  border-right: none;
+}
+
+.hybrid-directory-table th {
+  background: #f5effd;
+  color: #3f2b63;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #d5c5f0;
+}
+
+.hybrid-directory-table tbody tr:nth-child(even) {
+  background: #fcfaff;
+}
+
+.hybrid-directory-table tbody tr:hover {
+  background: #fef9e7;
+}
+
+.hybrid-table-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #33264a;
+  font-size: 0.96rem;
+}
+
+.hybrid-mini-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #efe8fa 0%, #fef6d8 100%);
+  border: 1px solid #d5c5f0;
+  color: #5e448a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hybrid-mini-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hybrid-table-desc {
+  color: #5a4b75;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.hybrid-table-users {
+  color: #4a3968;
+  font-size: 0.84rem;
+}
+
+.hybrid-table-action .app-btn {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+}
+
+/* ลิงก์หน่วยงานภายนอกและส่วนท้ายในโหมดลูกผสมพาสเทล */
+body.theme-hybrid .external-links-section {
+  background: #ffffff;
+  border: 1.5px solid #d5c5f0;
+  border-top: 3px solid #8b72b8;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(109, 81, 156, 0.06);
+}
+
+body.theme-hybrid .external-link-btn {
+  border-radius: 8px;
+  background: #faf7fe;
+  border: 1px solid #d5c5f0;
+}
+
+body.theme-hybrid .external-link-btn:hover {
+  background: #fef6d8;
+  border-color: #e6c665;
+  color: #78520a;
+}
+
+body.theme-hybrid .site-footer {
+  background: linear-gradient(90deg, #e7dcf8 0%, #f5effd 60%, #fef6d8 100%);
+  color: #3b2860;
+  border-top: 2.5px solid #e6c665;
+}
+
+body.theme-hybrid .footer-text {
+  color: #3b2860;
+}
+
+body.theme-hybrid .contact-info {
+  color: #5d4a82;
+}
+
+body.theme-hybrid .footer-admin-btn {
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4a3570;
+  border-color: #c8b5e8;
 }

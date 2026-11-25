@@ -27,6 +27,7 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
   },
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
+  USER_THEME_PREF_KEY: 'ic2569_portal_user_theme_pref_v1',
   ADMIN_OVERRIDE_KEY: 'ic2569_portal_admin_override_v1',
   ADMIN_OVERRIDE_TTL_MS: 10 * 60 * 1000, // ยึดค่าที่ Admin เพิ่งบันทึกไว้เป็นหลักนาน 10 นาที เพื่อป้องกัน Google CSV Cache ดีเลย์
   ADMIN_SESSION_KEY: 'ic2569_portal_admin_session_token',
@@ -46,6 +47,8 @@ let settings = {};
 let activeCategory = 'ทั้งหมด';
 let activeRole = 'ALL'; // 'ALL' | 'STUDENT' | 'FACULTY'
 let searchQuery = '';
+let activeThemeMode = 'hybrid'; // 'hybrid' | 'modern'
+let activeLayoutMode = 'cards'; // 'cards' | 'table'
 let adminState = {
   token: '',
   user: null,
@@ -277,6 +280,24 @@ function applySettings(settingsRows) {
   if (primaryColor && primaryColor !== CONFIG.LEGACY_NAVY_PRIMARY && /^#[0-9a-f]{6}$/i.test(primaryColor)) {
     root.style.setProperty('--primary', primaryColor);
     root.style.setProperty('--primary-hover', primaryColor);
+  }
+
+  // รูปแบบหน้าตาเว็บหลักที่ Admin เลือกไว้ (portal_theme_mode: 'modern' | 'hybrid_cards' | 'hybrid_table')
+  // หากผู้ใช้ยังไม่เคยกดเลือกมุมมองเองในเซสชันนี้ ให้ยึดค่าที่ Admin ตั้งไว้ในชีตเป็นหลัก
+  const urlParams = new URLSearchParams(window.location.search);
+  if (!urlParams.has('theme') && !urlParams.has('layout') && !window._userManuallySwitchedTheme) {
+    const savedThemeSetting = String(settings.portal_theme_mode || '').trim().toLowerCase();
+    if (savedThemeSetting === 'modern') {
+      activeThemeMode = 'modern';
+      activeLayoutMode = 'cards';
+    } else if (savedThemeSetting === 'hybrid_table') {
+      activeThemeMode = 'hybrid';
+      activeLayoutMode = 'table';
+    } else if (savedThemeSetting === 'hybrid_cards' || savedThemeSetting === 'hybrid') {
+      activeThemeMode = 'hybrid';
+      activeLayoutMode = 'cards';
+    }
+    applyHybridThemeClasses();
   }
 }
 
@@ -537,61 +558,144 @@ function renderApps() {
   const maintBtnText = '🔧 ปิดปรับปรุงชั่วคราว';
 
   let html = '';
+  let seqIndex = 1;
   grouped.forEach((apps, categoryName) => {
-    html += `
-      <section class="category-section">
-        <h2 class="category-heading">${escapeHtml(categoryName)}</h2>
-        <div class="apps-grid">
-          ${apps
-            .map((app) => {
-              const badgeType = (app.badge_type || 'active').trim().toLowerCase();
-              const validUrl = isValidHttpUrl(app.app_url);
-              const isMaint = isAppUnderMaintenance(badgeType);
-              const isDisabled = badgeType === 'coming_soon' || isMaint || !validUrl;
-              const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
-              const badgeLabel = isMaint ? (app.badge_text || 'ปิดปรับปรุงชั่วคราว') : app.badge_text;
+    if (activeThemeMode === 'hybrid' && activeLayoutMode === 'table') {
+      html += `
+        <section class="category-section hybrid-panel-box">
+          <div class="hybrid-panel-header">
+            <h2 class="category-heading">${escapeHtml(categoryName)}</h2>
+            <span class="hybrid-panel-count">จำนวน ${apps.length} ระบบงาน</span>
+          </div>
+          <div class="hybrid-table-wrap">
+            <table class="hybrid-directory-table">
+              <thead>
+                <tr>
+                  <th style="width:88px;text-align:center;">รหัสระบบ</th>
+                  <th style="width:270px;">ชื่อระบบสารสนเทศ</th>
+                  <th>รายละเอียดและการใช้งาน</th>
+                  <th style="width:170px;">กลุ่มผู้ใช้งาน</th>
+                  <th style="width:125px;text-align:center;">สถานะ</th>
+                  <th style="width:250px;text-align:center;">เข้าสู่ระบบงาน</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${apps
+                  .map((app) => {
+                    const badgeType = (app.badge_type || 'active').trim().toLowerCase();
+                    const validUrl = isValidHttpUrl(app.app_url);
+                    const isMaint = isAppUnderMaintenance(badgeType);
+                    const isDisabled = badgeType === 'coming_soon' || isMaint || !validUrl;
+                    const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
+                    const badgeLabel = isMaint ? (app.badge_text || 'ปิดปรับปรุงชั่วคราว') : (app.badge_text || 'เปิดใช้งาน');
+                    const btnLabel = isDisabled
+                      ? isMaint
+                        ? maintBtnText
+                        : badgeType === 'coming_soon'
+                          ? disabledText
+                          : 'รอระบุลิงก์ในฐานข้อมูล'
+                      : openText;
+                    const codeTag = escapeHtml(app.app_id || `SYS0${seqIndex++}`);
 
-              const btnLabel = isDisabled
-                ? isMaint
-                  ? maintBtnText
-                  : badgeType === 'coming_soon'
-                    ? disabledText
-                    : 'รอระบุลิงก์ในฐานข้อมูล'
-                : openText;
+                    return `
+                      <tr class="${isDisabled ? 'is-disabled-row' : ''}">
+                        <td style="text-align:center;">
+                          <span class="hybrid-code-badge">${codeTag}</span>
+                        </td>
+                        <td>
+                          <div class="hybrid-table-title-cell">
+                            <span class="hybrid-mini-icon" aria-hidden="true">${iconSvg}</span>
+                            <strong>${escapeHtml(app.app_title)}</strong>
+                          </div>
+                        </td>
+                        <td class="hybrid-table-desc">${escapeHtml(app.description)}</td>
+                        <td class="hybrid-table-users">${escapeHtml(app.target_users || '-')}</td>
+                        <td style="text-align:center;">
+                          <span class="app-badge badge-${escapeHtml(badgeType)}">${escapeHtml(badgeLabel)}</span>
+                        </td>
+                        <td class="hybrid-table-action">
+                          ${renderAppActionButtons(app, isDisabled, btnLabel)}
+                        </td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    } else {
+      const countClass =
+        apps.length === 1
+          ? 'grid-count-1'
+          : apps.length === 2
+            ? 'grid-count-2'
+            : apps.length === 4
+              ? 'grid-count-4'
+              : 'grid-count-many';
+      html += `
+        <section class="category-section ${activeThemeMode === 'hybrid' ? 'hybrid-panel-box' : ''}">
+          <div class="${activeThemeMode === 'hybrid' ? 'hybrid-panel-header' : ''}">
+            <h2 class="category-heading">${escapeHtml(categoryName)}</h2>
+            ${activeThemeMode === 'hybrid' ? `<span class="hybrid-panel-count">หมวดงานหลักสูตร (${apps.length} ระบบ)</span>` : ''}
+          </div>
+          <div class="apps-grid ${countClass}" data-app-count="${apps.length}">
+            ${apps
+              .map((app) => {
+                const badgeType = (app.badge_type || 'active').trim().toLowerCase();
+                const validUrl = isValidHttpUrl(app.app_url);
+                const isMaint = isAppUnderMaintenance(badgeType);
+                const isDisabled = badgeType === 'coming_soon' || isMaint || !validUrl;
+                const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
+                const badgeLabel = isMaint ? (app.badge_text || 'ปิดปรับปรุงชั่วคราว') : app.badge_text;
+                const codeTag = escapeHtml(app.app_id || `SYS0${seqIndex++}`);
 
-              return `
-                <article class="app-card ${isDisabled ? 'is-disabled' : ''}">
-                  <div class="card-top">
-                    <div class="app-icon-wrap" aria-hidden="true">${iconSvg}</div>
+                const btnLabel = isDisabled
+                  ? isMaint
+                    ? maintBtnText
+                    : badgeType === 'coming_soon'
+                      ? disabledText
+                      : 'รอระบุลิงก์ในฐานข้อมูล'
+                  : openText;
+
+                return `
+                  <article class="app-card ${isDisabled ? 'is-disabled' : ''}">
+                    <div class="card-top">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="app-icon-wrap" aria-hidden="true">${iconSvg}</div>
+                        ${activeThemeMode === 'hybrid' ? `<span class="hybrid-code-badge">${codeTag}</span>` : ''}
+                      </div>
+                      ${
+                        badgeLabel
+                          ? `<span class="app-badge badge-${escapeHtml(badgeType)}">${escapeHtml(badgeLabel)}</span>`
+                          : ''
+                      }
+                    </div>
+                    <h3 class="app-title">${escapeHtml(app.app_title)}</h3>
+                    <p class="app-desc">${escapeHtml(app.description)}</p>
                     ${
-                      badgeLabel
-                        ? `<span class="app-badge badge-${escapeHtml(badgeType)}">${escapeHtml(badgeLabel)}</span>`
+                      app.target_users
+                        ? `
+                      <div class="app-meta">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span><strong>ผู้ใช้งาน:</strong> ${escapeHtml(app.target_users)}</span>
+                      </div>
+                    `
                         : ''
                     }
-                  </div>
-                  <h3 class="app-title">${escapeHtml(app.app_title)}</h3>
-                  <p class="app-desc">${escapeHtml(app.description)}</p>
-                  ${
-                    app.target_users
-                      ? `
-                    <div class="app-meta">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                      </svg>
-                      <span>${escapeHtml(app.target_users)}</span>
-                    </div>
-                  `
-                      : ''
-                  }
-                  ${renderAppActionButtons(app, isDisabled, btnLabel)}
-                </article>
-              `;
-            })
-            .join('')}
-        </div>
-      </section>
-    `;
+                    ${renderAppActionButtons(app, isDisabled, btnLabel)}
+                  </article>
+                `;
+              })
+              .join('')}
+          </div>
+        </section>
+      `;
+    }
   });
 
   container.innerHTML = html;
@@ -1246,11 +1350,95 @@ window.toggleAppMaintenance = async function (appId) {
   }
 };
 
+function getCombinedPortalThemeCode() {
+  if (activeThemeMode === 'modern') return 'modern';
+  return activeLayoutMode === 'table' ? 'hybrid_table' : 'hybrid_cards';
+}
+
+function highlightAdminThemeButtons(themeCode) {
+  const hiddenInput = document.getElementById('set-portal-theme-mode');
+  if (hiddenInput) hiddenInput.value = themeCode;
+  document.querySelectorAll('[data-admin-theme-select]').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-admin-theme-select') === themeCode);
+  });
+}
+
+function upsertAdminSettingRow(key, value) {
+  if (!Array.isArray(adminState.settings)) adminState.settings = [];
+  const existing = adminState.settings.find((r) => String(r.setting_key || '').trim() === key);
+  if (existing) {
+    existing.setting_value = value;
+  } else {
+    adminState.settings.push({ setting_key: key, setting_value: value });
+  }
+}
+
+window.quickSwitchPortalThemeAdmin = async function (themeCode) {
+  const normalized = ['modern', 'hybrid_cards', 'hybrid_table'].includes(themeCode) ? themeCode : 'hybrid_cards';
+  const prevCode = getCombinedPortalThemeCode();
+
+  // 1) เปลี่ยนธีมหน้าเว็บทันทีใน 0.1 วินาที (Optimistic UI Update)
+  if (normalized === 'modern') {
+    activeThemeMode = 'modern';
+    activeLayoutMode = 'cards';
+  } else if (normalized === 'hybrid_table') {
+    activeThemeMode = 'hybrid';
+    activeLayoutMode = 'table';
+  } else {
+    activeThemeMode = 'hybrid';
+    activeLayoutMode = 'cards';
+  }
+  applyHybridThemeClasses();
+  renderApps();
+  highlightAdminThemeButtons(normalized);
+  upsertAdminSettingRow('portal_theme_mode', normalized);
+  saveAdminOverrideSnapshot();
+
+  if (!adminState.token) {
+    showPortalToast('เปลี่ยนรูปแบบหน้าเว็บแล้วครับ');
+    return;
+  }
+
+  setAdminSyncStatus('saving', '⏳ กำลังซิงก์รูปแบบหน้าเว็บลง Google Sheet...');
+  const labelMap = {
+    modern: '✨ การ์ดพาสเทลสมัยใหม่ (Modern Pastel)',
+    hybrid_cards: '🏛️ ลูกผสมพาสเทล (กล่องการ์ดมีกรอบ)',
+    hybrid_table: '📋 ลูกผสมพาสเทล (ตารางสารบัญ)',
+  };
+  showPortalToast(`🎨 เปลี่ยนหน้าเว็บเป็น "${labelMap[normalized]}" แล้ว (กำลังบันทึก...)`);
+
+  try {
+    const res = await callPortalAdminPost({
+      action: 'portal_save_settings',
+      auth_token: adminState.token,
+      settings: { portal_theme_mode: normalized },
+    });
+    if (!res.success) {
+      upsertAdminSettingRow('portal_theme_mode', prevCode);
+      setAdminSyncStatus('', '');
+      if (res.expired) showAdminLoginBox(res.message);
+      else showPortalToast(res.message);
+      return;
+    }
+    applyAdminWorkspaceData(res.data, true);
+    setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
+  } catch (err) {
+    setAdminSyncStatus('', '');
+    showPortalToast('บันทึกรูปแบบหน้าเว็บไม่สำเร็จ: ' + err.message);
+  }
+};
+
 function populateAdminSettingsForm() {
   const map = {};
   (adminState.settings || []).forEach((r) => {
     if (r.setting_key) map[r.setting_key.trim()] = r.setting_value || '';
   });
+  const savedTheme = String(map.portal_theme_mode || '').trim().toLowerCase();
+  const activeThemeCode = ['modern', 'hybrid_cards', 'hybrid_table'].includes(savedTheme)
+    ? savedTheme
+    : getCombinedPortalThemeCode();
+  highlightAdminThemeButtons(activeThemeCode);
+
   if (document.getElementById('set-maintenance-mode')) {
     document.getElementById('set-maintenance-mode').value = isTruthyFlag(map.maintenance_mode) ? 'TRUE' : 'FALSE';
   }
@@ -1475,6 +1663,7 @@ function setupPortalAdminEvents() {
     btn.textContent = 'กำลังบันทึก...';
     try {
       const settingsPayload = {
+        portal_theme_mode: document.getElementById('set-portal-theme-mode')?.value || getCombinedPortalThemeCode(),
         maintenance_mode: document.getElementById('set-maintenance-mode')?.value || 'FALSE',
         maintenance_eta: (document.getElementById('set-maintenance-eta')?.value || '').trim(),
         maintenance_text: (document.getElementById('set-maintenance-text')?.value || '').trim(),
@@ -1651,7 +1840,92 @@ function setupRoleSwitcherEvents() {
   });
 }
 
+function setPortalThemeAndLayoutByCode(themeCode, isUserClick = false) {
+  const normalized = ['modern', 'hybrid_cards', 'hybrid_table'].includes(themeCode) ? themeCode : 'hybrid_cards';
+  if (normalized === 'modern') {
+    activeThemeMode = 'modern';
+    activeLayoutMode = 'cards';
+  } else if (normalized === 'hybrid_table') {
+    activeThemeMode = 'hybrid';
+    activeLayoutMode = 'table';
+  } else {
+    activeThemeMode = 'hybrid';
+    activeLayoutMode = 'cards';
+  }
+  if (isUserClick) {
+    window._userManuallySwitchedTheme = true;
+    try {
+      sessionStorage.setItem(CONFIG.USER_THEME_PREF_KEY, normalized);
+    } catch (e) {}
+  }
+  applyHybridThemeClasses();
+  renderApps();
+}
+
+function applyHybridThemeClasses() {
+  const combinedCode = getCombinedPortalThemeCode();
+  document.body.classList.toggle('theme-hybrid', activeThemeMode === 'hybrid');
+  document.body.classList.toggle('layout-table', activeThemeMode === 'hybrid' && activeLayoutMode === 'table');
+
+  document.querySelectorAll('[data-user-theme]').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-user-theme') === combinedCode);
+  });
+  highlightAdminThemeButtons(combinedCode);
+}
+
+function setupHybridPreviewEvents() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('theme') === 'modern') {
+    activeThemeMode = 'modern';
+    window._userManuallySwitchedTheme = true;
+  } else if (urlParams.get('layout') === 'table') {
+    activeThemeMode = 'hybrid';
+    activeLayoutMode = 'table';
+    window._userManuallySwitchedTheme = true;
+  } else {
+    try {
+      const savedSessionTheme = sessionStorage.getItem(CONFIG.USER_THEME_PREF_KEY);
+      if (savedSessionTheme && ['modern', 'hybrid_cards', 'hybrid_table'].includes(savedSessionTheme)) {
+        if (savedSessionTheme === 'modern') {
+          activeThemeMode = 'modern';
+          activeLayoutMode = 'cards';
+        } else if (savedSessionTheme === 'hybrid_table') {
+          activeThemeMode = 'hybrid';
+          activeLayoutMode = 'table';
+        } else {
+          activeThemeMode = 'hybrid';
+          activeLayoutMode = 'cards';
+        }
+      }
+    } catch (e) {}
+  }
+
+  applyHybridThemeClasses();
+
+  document.querySelectorAll('[data-user-theme]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetCode = btn.getAttribute('data-user-theme') || 'hybrid_cards';
+      setPortalThemeAndLayoutByCode(targetCode, true);
+    });
+  });
+
+  document.querySelectorAll('[data-classic-nav]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-classic-nav');
+      document.querySelectorAll('[data-classic-nav]').forEach((b) => b.classList.toggle('active', b === btn));
+      if (target === 'EXT_LINKS') {
+        document.getElementById('external-links-section')?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      activeCategory = target === 'ALL' ? 'ทั้งหมด' : target;
+      renderCategoryFilters();
+      renderApps();
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  setupHybridPreviewEvents();
   initPortal();
   setupRoleSwitcherEvents();
   setupPortalAdminEvents();

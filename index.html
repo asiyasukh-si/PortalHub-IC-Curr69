@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <!-- ส่วนหัว (Hero Header) -->
+    <!-- ส่วนหัว (Hero Header / Institutional Top Banner) -->
     <header class="hero-header">
       <div class="container hero-inner">
         <div class="hero-top-row">
@@ -37,8 +37,14 @@
             </div>
           </div>
 
-          <!-- ปุ่มจัดการรหัสผ่านอาจารย์มุมขวาบน -->
+          <!-- ปุ่มสลับโหมดหน้าตาเว็บสำหรับผู้ใช้ & ปุ่มจัดการรหัสผ่านอาจารย์มุมขวาบน -->
           <div class="hero-actions">
+            <div class="user-view-switcher" role="group" aria-label="สลับรูปแบบการแสดงผลหน้าเว็บ" title="เลือกรูปแบบหน้าเว็บที่คุณถนัด">
+              <span class="user-view-label">มุมมอง:</span>
+              <button type="button" class="user-view-btn active" data-user-theme="hybrid_cards" title="โหมดลูกผสมพาสเทล: กล่องระบบงานมีกรอบและเมนูแนวนอน">🏛️ กล่องมีกรอบ</button>
+              <button type="button" class="user-view-btn" data-user-theme="hybrid_table" title="โหมดลูกผสมพาสเทล: ตารางสารบัญ 6 คอลัมน์แบบเว็บดั้งเดิม">📋 ตารางสารบัญ</button>
+              <button type="button" class="user-view-btn" data-user-theme="modern" title="โหมดการ์ดลอยพาสเทลสมัยใหม่">✨ การ์ดลอย</button>
+            </div>
             <a
               id="btn-passcode-manager"
               class="passcode-btn"
@@ -55,6 +61,22 @@
             </a>
           </div>
         </div>
+
+        <!-- แถบเมนูนำทางแนวนอนแบบเว็บมหาวิทยาลัยดั้งเดิม (แสดงในโหมดลูกผสมทางการ) -->
+        <nav id="classic-menubar" class="classic-menubar" aria-label="เมนูหลักของระบบ">
+          <div class="classic-menubar-links">
+            <button type="button" class="classic-nav-item active" data-classic-nav="ALL">🏠 หน้าแรก (ระบบทั้งหมด)</button>
+            <button type="button" class="classic-nav-item" data-classic-nav="หลักสูตรและการเรียนการสอน">📘 หลักสูตรและการเรียนการสอน</button>
+            <button type="button" class="classic-nav-item" data-classic-nav="บริหารจัดการหลักสูตร">🗂️ บริหารจัดการหลักสูตร</button>
+            <button type="button" class="classic-nav-item" data-classic-nav="EXT_LINKS">🔗 ลิงก์หน่วยงาน (REG / คณะวิทย์ / มช.)</button>
+          </div>
+          <div class="classic-view-toggle">
+            <span class="classic-view-label">สลับมุมมอง:</span>
+            <button type="button" class="classic-view-btn active" data-user-theme="hybrid_cards">🗂️ กล่องมีกรอบ</button>
+            <button type="button" class="classic-view-btn" data-user-theme="hybrid_table">📋 ตารางสารบัญ</button>
+            <button type="button" class="classic-view-btn" data-user-theme="modern">✨ การ์ดลอย</button>
+          </div>
+        </nav>
 
         <!-- ช่องค้นหา ตัวสลับมุมมองตามบทบาทผู้ใช้งาน และตัวกรองหมวดหมู่ -->
         <div class="toolbar">
@@ -332,6 +354,32 @@
 
         <!-- แท็บ 2: จัดการโหมดปิดปรับปรุง แถบประกาศ และข้อความหน้าเว็บ (Portal_Settings) -->
         <div id="admin-tab-settings" class="admin-tab-pane hidden">
+          <!-- กล่องสวิตช์เลือกรูปแบบหน้าตา Portal (Theme & Layout Switcher สำหรับ Admin) -->
+          <div class="admin-editor-box" style="display:block;border-color:#c4b5fd;background:linear-gradient(135deg,#f5f0ff 0%,#fef9e7 100%);">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+              <h3 style="font-size:1rem;color:#4a3570;margin:0;">🎨 รูปแบบหน้าตาเว็บหลัก (Portal Theme &amp; Layout Switcher)</h3>
+              <span class="app-badge badge-advisor_only">สลับหน้าตาเว็บได้ทันที • รองรับทั้ง 2 สไตล์</span>
+            </div>
+            <p class="admin-muted" style="margin-bottom:12px;color:#5b4682;">
+              เลือกรูปแบบหน้าเว็บหลักที่ต้องการแสดงให้คณาจารย์และนักศึกษาเห็นเมื่อเปิดเข้าหน้า Portal (กดปุ่มเลือกด้านล่างเพื่อเปลี่ยนและบันทึกทันทีในคลิกเดียว)
+            </p>
+            <div class="admin-theme-switcher-grid" id="admin-theme-switcher-grid">
+              <button type="button" class="admin-theme-option-btn" data-admin-theme-select="modern" onclick="quickSwitchPortalThemeAdmin('modern')">
+                <div class="admin-theme-opt-title">✨ แบบเดิม: การ์ดพาสเทลสมัยใหม่ (Modern Pastel)</div>
+                <div class="admin-theme-opt-desc">การ์ดลอยโปร่งแสง มุมมน ไล่เฉดพาสเทลม่วง-เหลืองละมุนตา</div>
+              </button>
+              <button type="button" class="admin-theme-option-btn" data-admin-theme-select="hybrid_cards" onclick="quickSwitchPortalThemeAdmin('hybrid_cards')">
+                <div class="admin-theme-opt-title">🏛️ แบบลูกผสมพาสเทล: กล่องการ์ดมีกรอบ (Hybrid Cards)</div>
+                <div class="admin-theme-opt-desc">มีแบนเนอร์หัวเว็บ เมนูแนวนอน กล่องหมวดหมู่มีแถบหัวสีม่วงพาสเทล-ขอบทอง และรหัส APP ชัดเจน</div>
+              </button>
+              <button type="button" class="admin-theme-option-btn" data-admin-theme-select="hybrid_table" onclick="quickSwitchPortalThemeAdmin('hybrid_table')">
+                <div class="admin-theme-opt-title">📋 แบบลูกผสมพาสเทล: ตารางสารบัญ (Hybrid Directory Table)</div>
+                <div class="admin-theme-opt-desc">มีแบนเนอร์และเมนูแนวนอน แสดงรายการระบบเป็นตารางสารบัญ 6 คอลัมน์ อ่านง่ายแบบเว็บดั้งเดิม</div>
+              </button>
+            </div>
+            <input type="hidden" id="set-portal-theme-mode" value="hybrid_cards" />
+          </div>
+
           <div class="admin-editor-box" style="display:block;border-color:#fdba74;background:#fff7ed;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
               <h3 style="font-size:1rem;color:#9a3412;margin:0;">🔧 โหมดปิดปรับปรุงทั้งหน้า Portal (Full Portal Maintenance Mode)</h3>
