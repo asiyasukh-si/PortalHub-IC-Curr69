@@ -197,8 +197,12 @@ function applySettings(settingsRows) {
 
   if (settings.site_title) {
     let cleanSiteTitle = settings.site_title.trim();
-    if (cleanSiteTitle.includes('ฉบับปรับปรุง พ.ศ. 2569') || cleanSiteTitle.includes('(พ.ศ. 2569)')) {
-      cleanSiteTitle = 'ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม';
+    if (
+      cleanSiteTitle.includes('ฉบับปรับปรุง พ.ศ. 2569') ||
+      cleanSiteTitle.includes('(พ.ศ. 2569)') ||
+      cleanSiteTitle === 'ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม'
+    ) {
+      cleanSiteTitle = 'ระบบสารสนเทศหลักภาควิชาเคมีอุตสาหกรรม';
     }
     document.title = cleanSiteTitle;
     document.getElementById('site-title').textContent = cleanSiteTitle;
