@@ -331,7 +331,7 @@ function renderAppActionButtons(app, isDisabled, btnLabel) {
 
   if (appId === 'APP05') {
     const isOffSeason = badgeType === 'advisor_only';
-    const studentUrl = isOffSeason ? `${baseUrl}${sep}page=Research` : baseUrl;
+    const studentUrl = isOffSeason ? `${baseUrl}${sep}page=Research&mode=offseason` : baseUrl;
     const studentLabel = isOffSeason ? 'ดูหัวข้อวิจัย (นอกรอบยื่น)' : 'นักศึกษายื่นคำร้อง / ดูผล';
     const studentTitle = isOffSeason
       ? 'ขณะนี้อยู่นอกรอบยื่นคำร้อง นักศึกษาสามารถคลิกเพื่อสำรวจหัวข้องานวิจัยและข้อมูลอาจารย์ที่ปรึกษาได้'
