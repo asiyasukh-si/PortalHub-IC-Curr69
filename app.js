@@ -27,6 +27,8 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
   },
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
+  ADMIN_OVERRIDE_KEY: 'ic2569_portal_admin_override_v1',
+  ADMIN_OVERRIDE_TTL_MS: 10 * 60 * 1000, // ยึดค่าที่ Admin เพิ่งบันทึกไว้เป็นหลักนาน 10 นาที เพื่อป้องกัน Google CSV Cache ดีเลย์
   ADMIN_SESSION_KEY: 'ic2569_portal_admin_session_token',
   ADMIN_API_URL:
     'https://script.google.com/macros/s/AKfycbwswqLG3Zm0T1B2YZbw9Or6zWNr1bfxqGMk38Fw7nbv2RjNMlhOlExMEJbYyKYxcAlD/exec',
@@ -737,23 +739,63 @@ function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
   );
 }
 
+function getRecentAdminOverride() {
+  try {
+    const raw = localStorage.getItem(CONFIG.ADMIN_OVERRIDE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      parsed.updatedAt &&
+      Date.now() - parsed.updatedAt < CONFIG.ADMIN_OVERRIDE_TTL_MS &&
+      Array.isArray(parsed.apps) &&
+      Array.isArray(parsed.settings)
+    ) {
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function saveAdminOverrideSnapshot() {
+  try {
+    localStorage.setItem(
+      CONFIG.ADMIN_OVERRIDE_KEY,
+      JSON.stringify({
+        apps: adminState.apps,
+        settings: adminState.settings,
+        externalLinks: adminState.externalLinks,
+        updatedAt: Date.now(),
+      })
+    );
+  } catch (e) {}
+}
+
 // =========================================================
-// เริ่มต้นโหลดข้อมูลจาก Google Sheets (พร้อมระบบ Instant Cache)
+// เริ่มต้นโหลดข้อมูลจาก Google Sheets (พร้อมระบบ Instant Cache & Admin Override)
 // =========================================================
 async function initPortal() {
   const statusEl = document.getElementById('status-message');
   let renderedFromCache = false;
 
-  try {
-    const cachedRaw = localStorage.getItem(CONFIG.CACHE_KEY);
-    if (cachedRaw) {
-      const cached = JSON.parse(cachedRaw);
-      if (cached && cached.settingsCsv && cached.appsCsv) {
-        processPortalData(cached.settingsCsv, cached.appsCsv, cached.extLinksCsv || '');
-        renderedFromCache = true;
+  const recentOverride = getRecentAdminOverride();
+  if (recentOverride) {
+    applyPortalObjects(recentOverride.settings, recentOverride.apps, recentOverride.externalLinks || []);
+    renderedFromCache = true;
+  }
+
+  if (!renderedFromCache) {
+    try {
+      const cachedRaw = localStorage.getItem(CONFIG.CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && cached.settingsCsv && cached.appsCsv) {
+          processPortalData(cached.settingsCsv, cached.appsCsv, cached.extLinksCsv || '');
+          renderedFromCache = true;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   try {
     const [settingsRes, appsRes] = await Promise.all([
@@ -777,7 +819,10 @@ async function initPortal() {
       }
     }
 
-    processPortalData(settingsCsv, appsCsv, extLinksCsv);
+    // หากเพิ่งมีการบันทึกผ่านหน้า Admin ไม่เกิน 10 นาที ให้คงค่าล่าสุดของ Admin ไว้เพื่อไม่ให้ Google CSV Cache ตัวเก่าทับ
+    if (!getRecentAdminOverride()) {
+      processPortalData(settingsCsv, appsCsv, extLinksCsv);
+    }
 
     try {
       localStorage.setItem(
@@ -869,10 +914,30 @@ async function loadPortalAdminFacultyList() {
   sel.innerHTML = '<option value="">รออัปเดตโค้ด GAS APP03 เป็นเวอร์ชันใหม่ (Manage Deployments > New version)</option>';
 }
 
-function applyAdminWorkspaceData(data) {
+function setAdminSyncStatus(mode, text) {
+  const el = document.getElementById('portal-admin-sync-status');
+  if (!el) return;
+  clearTimeout(setAdminSyncStatus._timer);
+  if (!mode) {
+    el.classList.add('hidden');
+    return;
+  }
+  el.className = `admin-sync-badge ${mode === 'saving' ? 'admin-sync-saving' : 'admin-sync-saved'}`;
+  el.textContent = text;
+  el.classList.remove('hidden');
+  if (mode === 'saved') {
+    setAdminSyncStatus._timer = setTimeout(() => el.classList.add('hidden'), 3200);
+  }
+}
+
+function applyAdminWorkspaceData(data, persistOverride = false) {
   adminState.apps = Array.isArray(data.apps) ? data.apps : [];
   adminState.settings = Array.isArray(data.settings) ? data.settings : [];
   adminState.externalLinks = Array.isArray(data.externalLinks) ? data.externalLinks : [];
+
+  if (persistOverride) {
+    saveAdminOverrideSnapshot();
+  }
 
   // อัปเดตหน้าเว็บ Portal Hub ทันทีโดยไม่ต้องรอ CSV Cache
   applyPortalObjects(adminState.settings, adminState.apps, adminState.externalLinks);
@@ -991,7 +1056,7 @@ function renderAdminAppsTable() {
           <td><strong>${escapeHtml(app.app_id)}</strong></td>
           <td style="text-align:center;">${escapeHtml(app.display_order)}</td>
           <td>${zoneLabel}</td>
-          <td>
+          <td class="admin-col-title">
             <div style="font-weight:700;">${escapeHtml(app.app_title)}</div>
             <div style="font-size:0.78rem;color:#64577a;">หมวด: ${escapeHtml(app.category || '-')}</div>
           </td>
@@ -1078,9 +1143,22 @@ window.toggleApp05Season = async function (appId) {
     (a) => String(a.app_id || '').toUpperCase() === String(appId).toUpperCase()
   );
   if (!existing) return;
+  const prevType = existing.badge_type;
+  const prevText = existing.badge_text;
   const isCurrentlyOffSeason = String(existing.badge_type || '').toLowerCase() === 'advisor_only';
   const nextType = isCurrentlyOffSeason ? 'active' : 'advisor_only';
   const nextText = isCurrentlyOffSeason ? 'เปิดรับคำร้อง นศ.' : 'นอกรอบยื่น (อ.อัปเดตข้อมูลได้)';
+
+  // 1) เปลี่ยนสถานะบนหน้าจอทันที (Optimistic UI Update ใน 0.1 วินาที)
+  existing.badge_type = nextType;
+  existing.badge_text = nextText;
+  applyAdminWorkspaceData(adminState, true);
+  setAdminSyncStatus('saving', '⏳ กำลังซิงก์ลง Google Sheet...');
+  showPortalToast(
+    isCurrentlyOffSeason
+      ? '🎓 เปลี่ยนเป็น "เปิดรับคำร้อง นศ." แล้ว (กำลังบันทึก...)'
+      : '👩‍🏫 เปลี่ยนเป็น "นอกรอบยื่นคำร้อง" แล้ว (กำลังบันทึก...)'
+  );
 
   try {
     const res = await callPortalAdminPost({
@@ -1095,17 +1173,21 @@ window.toggleApp05Season = async function (appId) {
       },
     });
     if (!res.success) {
+      existing.badge_type = prevType;
+      existing.badge_text = prevText;
+      applyAdminWorkspaceData(adminState, true);
+      setAdminSyncStatus('', '');
       if (res.expired) showAdminLoginBox(res.message);
       else showPortalToast(res.message);
       return;
     }
-    applyAdminWorkspaceData(res.data);
-    showPortalToast(
-      isCurrentlyOffSeason
-        ? 'เปิดรอบให้นักศึกษายื่นคำร้องเลือกอาจารย์ที่ปรึกษา (APP05) แล้วครับ'
-        : 'ตั้งค่า APP05 เป็น "นอกรอบยื่นคำร้อง" (อาจารย์เข้าอัปเดตโปรไฟล์ได้ และ นศ. ดูหัวข้อวิจัยได้) แล้วครับ'
-    );
+    applyAdminWorkspaceData(res.data, true);
+    setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
   } catch (err) {
+    existing.badge_type = prevType;
+    existing.badge_text = prevText;
+    applyAdminWorkspaceData(adminState, true);
+    setAdminSyncStatus('', '');
     showPortalToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message);
   }
 };
@@ -1115,9 +1197,22 @@ window.toggleAppMaintenance = async function (appId) {
     (a) => String(a.app_id || '').toUpperCase() === String(appId).toUpperCase()
   );
   if (!existing) return;
+  const prevType = existing.badge_type;
+  const prevText = existing.badge_text;
   const currentlyMaint = isAppUnderMaintenance(existing.badge_type);
   const nextType = currentlyMaint ? 'active' : 'maintenance';
   const nextText = currentlyMaint ? 'เปิดใช้งาน' : 'ปิดปรับปรุงชั่วคราว';
+
+  // 1) เปลี่ยนสถานะบนหน้าจอทันที (Optimistic UI Update ใน 0.1 วินาที)
+  existing.badge_type = nextType;
+  existing.badge_text = nextText;
+  applyAdminWorkspaceData(adminState, true);
+  setAdminSyncStatus('saving', '⏳ กำลังซิงก์ลง Google Sheet...');
+  showPortalToast(
+    currentlyMaint
+      ? `🟢 เปิดใช้งานระบบ ${existing.app_id} แล้ว (กำลังบันทึก...)`
+      : `🔧 ตั้งค่า ${existing.app_id} เป็น "ปิดปรับปรุงชั่วคราว" แล้ว (กำลังบันทึก...)`
+  );
 
   try {
     const res = await callPortalAdminPost({
@@ -1132,17 +1227,21 @@ window.toggleAppMaintenance = async function (appId) {
       },
     });
     if (!res.success) {
+      existing.badge_type = prevType;
+      existing.badge_text = prevText;
+      applyAdminWorkspaceData(adminState, true);
+      setAdminSyncStatus('', '');
       if (res.expired) showAdminLoginBox(res.message);
       else showPortalToast(res.message);
       return;
     }
-    applyAdminWorkspaceData(res.data);
-    showPortalToast(
-      currentlyMaint
-        ? `เปิดให้บริการระบบ ${existing.app_id} ตามปกติแล้วครับ`
-        : `ตั้งค่าระบบ ${existing.app_id} เป็น "ปิดปรับปรุงชั่วคราว" แล้วครับ`
-    );
+    applyAdminWorkspaceData(res.data, true);
+    setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
   } catch (err) {
+    existing.badge_type = prevType;
+    existing.badge_text = prevText;
+    applyAdminWorkspaceData(adminState, true);
+    setAdminSyncStatus('', '');
     showPortalToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message);
   }
 };
@@ -1360,7 +1459,8 @@ function setupPortalAdminEvents() {
         return;
       }
       document.getElementById('admin-app-editor').classList.add('hidden');
-      applyAdminWorkspaceData(res.data);
+      applyAdminWorkspaceData(res.data, true);
+      setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
       showPortalToast(res.message);
     } catch (err) {
       btn.disabled = false;
@@ -1398,7 +1498,8 @@ function setupPortalAdminEvents() {
         else showPortalToast(res.message);
         return;
       }
-      applyAdminWorkspaceData(res.data);
+      applyAdminWorkspaceData(res.data, true);
+      setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
       showPortalToast(res.message);
     } catch (err) {
       btn.disabled = false;
@@ -1438,7 +1539,8 @@ function setupPortalAdminEvents() {
         return;
       }
       document.getElementById('admin-link-editor').classList.add('hidden');
-      applyAdminWorkspaceData(res.data);
+      applyAdminWorkspaceData(res.data, true);
+      setAdminSyncStatus('saved', '✅ ซิงก์ลง Google Sheet เรียบร้อย');
       showPortalToast(res.message);
     } catch (err) {
       btn.disabled = false;
