@@ -311,6 +311,55 @@ function renderCategoryFilters() {
   });
 }
 
+function renderAppActionButtons(app, isDisabled, btnLabel) {
+  if (isDisabled) {
+    return `<span class="app-btn btn-disabled" aria-disabled="true">${escapeHtml(btnLabel)}</span>`;
+  }
+  const appId = String(app.app_id || '').trim().toUpperCase();
+  const baseUrl = app.app_url.trim();
+  const badgeType = String(app.badge_type || 'active').trim().toLowerCase();
+  const sep = baseUrl.includes('?') ? '&' : '?';
+
+  if (appId === 'APP01') {
+    return `
+      <div class="app-dual-btns">
+        <a class="app-btn" href="${escapeHtml(baseUrl)}${sep}curr=2569" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2569 สำหรับนักศึกษารหัส 69 เป็นต้นไป">หลักสูตร 2569 (รหัส 69+)</a>
+        <a class="app-btn app-btn-secondary" href="${escapeHtml(baseUrl)}${sep}curr=2564" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2564 สำหรับนักศึกษารหัส 64-68 (แผน 1 และแผน 2)">หลักสูตร 2564 (รหัส 64-68)</a>
+      </div>
+    `;
+  }
+
+  if (appId === 'APP05') {
+    const isOffSeason = badgeType === 'advisor_only';
+    const studentUrl = isOffSeason ? `${baseUrl}${sep}page=Research` : baseUrl;
+    const studentLabel = isOffSeason ? 'ดูหัวข้อวิจัย (นอกรอบยื่น)' : 'นักศึกษายื่นคำร้อง / ดูผล';
+    const studentTitle = isOffSeason
+      ? 'ขณะนี้อยู่นอกรอบยื่นคำร้อง นักศึกษาสามารถคลิกเพื่อสำรวจหัวข้องานวิจัยและข้อมูลอาจารย์ที่ปรึกษาได้'
+      : 'เข้าสู่ระบบยื่นคำร้องเลือกอาจารย์ที่ปรึกษา สำรวจหัวข้อวิจัย และดูบอร์ดประกาศผล';
+    const advisorUrl = `${baseUrl}${sep}page=Advisor`;
+    const advisorLabel = 'อาจารย์อัปเดตโปรไฟล์';
+    const advisorTitle = 'สำหรับอาจารย์ที่ปรึกษา: เข้าไปอัปเดตหัวข้อวิจัย รูปโปรไฟล์ โควตา หรือพิจารณาคำร้องได้ตลอดเวลา';
+
+    if (activeRole === 'STUDENT') {
+      return `<a class="app-btn ${isOffSeason ? 'app-btn-secondary' : ''}" href="${escapeHtml(studentUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(studentTitle)}">${escapeHtml(
+        isOffSeason ? 'สำรวจหัวข้อวิจัยอาจารย์ (นอกรอบยื่นคำร้อง) →' : 'เข้าสู่ระบบเลือกอาจารย์ที่ปรึกษา →'
+      )}</a>`;
+    }
+    if (activeRole === 'FACULTY') {
+      return `<a class="app-btn" href="${escapeHtml(advisorUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(advisorTitle)}">จัดการโปรไฟล์ & พิจารณาคำร้อง (อาจารย์) →</a>`;
+    }
+
+    return `
+      <div class="app-dual-btns">
+        <a class="app-btn ${isOffSeason ? 'app-btn-secondary' : ''}" href="${escapeHtml(studentUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(studentTitle)}">${escapeHtml(studentLabel)}</a>
+        <a class="app-btn ${isOffSeason ? '' : 'app-btn-secondary'}" href="${escapeHtml(advisorUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(advisorTitle)}">${escapeHtml(advisorLabel)}</a>
+      </div>
+    `;
+  }
+
+  return `<a class="app-btn" href="${escapeHtml(baseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(btnLabel)}</a>`;
+}
+
 function isAppUnderMaintenance(badgeType) {
   const t = String(badgeType || '').trim().toLowerCase();
   return t === 'maintenance';
@@ -533,16 +582,7 @@ function renderApps() {
                   `
                       : ''
                   }
-                  ${
-                    isDisabled
-                      ? `<span class="app-btn btn-disabled" aria-disabled="true">${escapeHtml(btnLabel)}</span>`
-                      : String(app.app_id || '').trim().toUpperCase() === 'APP01'
-                        ? `<div class="app-dual-btns">
-                             <a class="app-btn" href="${escapeHtml(app.app_url.trim())}?curr=2569" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2569 สำหรับนักศึกษารหัส 69 เป็นต้นไป">หลักสูตร 2569 (รหัส 69+)</a>
-                             <a class="app-btn app-btn-secondary" href="${escapeHtml(app.app_url.trim())}?curr=2564" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2564 สำหรับนักศึกษารหัส 64-68 (แผน 1 และแผน 2)">หลักสูตร 2564 (รหัส 64-68)</a>
-                           </div>`
-                        : `<a class="app-btn" href="${escapeHtml(app.app_url.trim())}" target="_blank" rel="noopener noreferrer">${escapeHtml(btnLabel)}</a>`
-                  }
+                  ${renderAppActionButtons(app, isDisabled, btnLabel)}
                 </article>
               `;
             })
@@ -624,6 +664,14 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
     } else if (appId === 'APP02') {
       if (!appTitle.includes('มคอ.3') && !appTitle.includes('OBE')) {
         appTitle = 'ระบบสืบค้นข้อกำหนดกระบวนวิชา (มคอ.3 / OBE)';
+      }
+    } else if (appId === 'APP05') {
+      // หากเดิมตั้งเป็น coming_soon แต่มี URL ระบบจริงแล้ว ให้เปลี่ยนเป็นโหมด advisor_only (นอกรอบยื่นคำร้อง แต่อาจารย์เข้าอัปเดตโปรไฟล์และนักศึกษาดูหัวข้อวิจัยได้)
+      if (badgeType === 'coming_soon' && (isValidHttpUrl(rawUrl) || isValidHttpUrl(fallbackUrl))) {
+        badgeType = 'advisor_only';
+        if (!app.badge_text || app.badge_text === 'เปิดใช้งาน') {
+          app.badge_text = 'นอกรอบยื่น (อ.อัปเดตข้อมูลได้)';
+        }
       }
     } else if (appId === 'APP06') {
       if (!iconName || iconName === 'sparkles' || iconName === 'default') iconName = 'clipboard';
@@ -914,8 +962,10 @@ function renderAdminAppsTable() {
   tbody.innerHTML = sorted
     .map((app) => {
       const isVis = isTruthyFlag(app.is_visible);
+      const appIdUpper = String(app.app_id || '').trim().toUpperCase();
       const bType = (app.badge_type || 'active').toLowerCase();
       const isMaint = isAppUnderMaintenance(bType);
+      const isAdvisorOnly = bType === 'advisor_only';
       const zone = getDisplayZone(app);
       const zoneLabel =
         zone === 'TOP_BAR'
@@ -924,6 +974,12 @@ function renderAdminAppsTable() {
       const visLabel = isVis
         ? '<span style="color:#166534;font-weight:700;">แสดง</span>'
         : '<span style="color:#b91c1c;">ซ่อน</span>';
+      const seasonBtn =
+        appIdUpper === 'APP05'
+          ? `<button type="button" class="admin-btn-outline admin-btn-sm" style="background:#eef2ff;color:#3730a3;border-color:#a5b4fc;" onclick="toggleApp05Season('${escapeJsStr(app.app_id)}')" title="สลับระหว่าง เปิดรับคำร้องนักศึกษา กับ นอกรอบยื่นคำร้อง (อาจารย์เข้าอัปเดตโปรไฟล์ได้ตลอด)">${
+              isAdvisorOnly ? '🎓 เปิดรอบ นศ. ยื่น' : '👩‍🏫 ตั้งเป็นนอกรอบ นศ.'
+            }</button>`
+          : '';
       const maintToggleBtn = `<button type="button" class="admin-btn-outline admin-btn-sm" style="${
         isMaint ? 'background:#e5f6ed;color:#166534;border-color:#bce4cf;' : 'background:#fff7ed;color:#9a3412;border-color:#fdba74;'
       }" onclick="toggleAppMaintenance('${escapeJsStr(app.app_id)}')">${
@@ -942,6 +998,7 @@ function renderAdminAppsTable() {
           <td><span class="app-badge badge-${escapeHtml(bType)}">${escapeHtml(app.badge_text || '-')}</span></td>
           <td style="text-align:center;">${visLabel}</td>
           <td style="text-align:center;white-space:nowrap;">
+            ${seasonBtn}
             ${maintToggleBtn}
             <button type="button" class="admin-btn-outline admin-btn-sm" onclick="openAdminAppEditor('${escapeJsStr(app.app_id)}')">แก้ไข</button>
             <button type="button" class="admin-btn-danger admin-btn-sm" onclick="deleteAdminApp('${escapeJsStr(app.app_id)}')">ลบ</button>
@@ -1013,6 +1070,43 @@ window.deleteAdminApp = async function (appId) {
     showPortalToast(res.message);
   } catch (err) {
     showPortalToast('ลบไม่สำเร็จ: ' + err.message);
+  }
+};
+
+window.toggleApp05Season = async function (appId) {
+  const existing = adminState.apps.find(
+    (a) => String(a.app_id || '').toUpperCase() === String(appId).toUpperCase()
+  );
+  if (!existing) return;
+  const isCurrentlyOffSeason = String(existing.badge_type || '').toLowerCase() === 'advisor_only';
+  const nextType = isCurrentlyOffSeason ? 'active' : 'advisor_only';
+  const nextText = isCurrentlyOffSeason ? 'เปิดรับคำร้อง นศ.' : 'นอกรอบยื่น (อ.อัปเดตข้อมูลได้)';
+
+  try {
+    const res = await callPortalAdminPost({
+      action: 'portal_save_app',
+      auth_token: adminState.token,
+      app: {
+        ...existing,
+        badge_type: nextType,
+        badge_text: nextText,
+        is_visible: isTruthyFlag(existing.is_visible) ? 'TRUE' : 'FALSE',
+        display_zone: getDisplayZone(existing),
+      },
+    });
+    if (!res.success) {
+      if (res.expired) showAdminLoginBox(res.message);
+      else showPortalToast(res.message);
+      return;
+    }
+    applyAdminWorkspaceData(res.data);
+    showPortalToast(
+      isCurrentlyOffSeason
+        ? 'เปิดรอบให้นักศึกษายื่นคำร้องเลือกอาจารย์ที่ปรึกษา (APP05) แล้วครับ'
+        : 'ตั้งค่า APP05 เป็น "นอกรอบยื่นคำร้อง" (อาจารย์เข้าอัปเดตโปรไฟล์ได้ และ นศ. ดูหัวข้อวิจัยได้) แล้วครับ'
+    );
+  } catch (err) {
+    showPortalToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message);
   }
 };
 

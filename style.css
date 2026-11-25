@@ -827,6 +827,12 @@ a.quick-card:hover .quick-card-arrow {
   border: 1px solid #fdba74;
 }
 
+.badge-advisor_only {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+}
+
 /* =========================================================
    โหมดปิดปรับปรุงระบบ (Full Portal Maintenance Screen)
    ========================================================= */
