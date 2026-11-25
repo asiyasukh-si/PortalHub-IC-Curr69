@@ -85,6 +85,30 @@
     <!-- พื้นที่แสดงการ์ดระบบงานและแถบลิงก์ภายนอก -->
     <main class="main-content">
       <div class="container">
+        <!-- แถบแจ้งเตือนสำหรับ Admin เมื่อเปิดโหมดปิดปรับปรุงระบบทั้งหน้า Portal -->
+        <div id="admin-maintenance-banner" class="admin-maintenance-banner hidden" role="status">
+          <div>
+            <strong>🔧 ขณะนี้เปิดโหมดปิดปรับปรุงทั้งหน้า Portal อยู่:</strong>
+            <span>ผู้ใช้ทั่วไปจะเห็นหน้าจอแจ้งปิดปรับปรุงและกดเข้าใช้งานไม่ได้ (คุณกำลังล็อกอินเป็น Admin จึงยังเห็นการ์ดและกดทดสอบได้ตามปกติ)</span>
+          </div>
+          <button type="button" class="admin-btn-outline admin-btn-sm" onclick="openPortalAdminModal()">ตั้งค่าโหมดปิดปรับปรุง</button>
+        </div>
+
+        <!-- หน้าจอแจ้งปิดปรับปรุงทั้งระบบ (แสดงให้ผู้ใช้ทั่วไปเห็นเมื่อ maintenance_mode = TRUE) -->
+        <section id="maintenance-screen" class="maintenance-screen hidden" aria-live="polite">
+          <div class="maintenance-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <span class="app-badge badge-maintenance" style="margin-bottom:10px;display:inline-block;">MAINTENANCE MODE • ปิดปรับปรุงระบบชั่วคราว</span>
+          <h2 id="maintenance-heading" class="maintenance-heading">ระบบกำลังอยู่ระหว่างการปรับปรุงและอัปเดตฐานข้อมูล</h2>
+          <p id="maintenance-desc" class="maintenance-desc">ขออภัยในความไม่สะดวก ผู้ดูแลระบบกำลังอัปเดตข้อมูลหลักสูตรและระบบงาน กรุณากลับมาใช้งานอีกครั้งในภายหลัง</p>
+          <div id="maintenance-eta-box" class="maintenance-eta-box hidden">
+            <strong>กำหนดเปิดใช้งานอีกครั้ง:</strong> <span id="maintenance-eta-text"></span>
+          </div>
+        </section>
+
         <div id="status-message" class="status-message">
           <div class="spinner" aria-hidden="true"></div>
           <p>กำลังโหลดข้อมูลระบบงานจากฐานข้อมูล...</p>
@@ -226,10 +250,11 @@
                 <input type="text" id="edit-app-badge-text" class="admin-input" value="เปิดใช้งาน" />
               </div>
               <div class="admin-form-group">
-                <label for="edit-app-badge-type">สีป้ายสถานะ</label>
+                <label for="edit-app-badge-type">สถานะระบบงาน / สีป้าย</label>
                 <select id="edit-app-badge-type" class="admin-input">
                   <option value="active">สีเขียว (เปิดใช้งานปกติ)</option>
                   <option value="restricted">สีเหลือง (เฉพาะอาจารย์/จำกัดสิทธิ์)</option>
+                  <option value="maintenance">สีส้ม (🔧 ปิดปรับปรุงชั่วคราว / ล็อกปุ่มกด)</option>
                   <option value="coming_soon">สีเทา (กำลังพัฒนา / ปิดปุ่มกด)</option>
                 </select>
               </div>
@@ -273,7 +298,7 @@
                   <th>ชื่อระบบงาน &amp; หมวดหมู่</th>
                   <th style="width:110px;">สถานะป้าย</th>
                   <th style="width:85px;text-align:center;">แสดงผล</th>
-                  <th style="width:130px;text-align:center;">จัดการ</th>
+                  <th style="width:210px;text-align:center;">จัดการ</th>
                 </tr>
               </thead>
               <tbody id="admin-apps-tbody"></tbody>
@@ -281,8 +306,35 @@
           </div>
         </div>
 
-        <!-- แท็บ 2: จัดการแถบประกาศและข้อความหน้าเว็บ (Portal_Settings) -->
+        <!-- แท็บ 2: จัดการโหมดปิดปรับปรุง แถบประกาศ และข้อความหน้าเว็บ (Portal_Settings) -->
         <div id="admin-tab-settings" class="admin-tab-pane hidden">
+          <div class="admin-editor-box" style="display:block;border-color:#fdba74;background:#fff7ed;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              <h3 style="font-size:1rem;color:#9a3412;margin:0;">🔧 โหมดปิดปรับปรุงทั้งหน้า Portal (Full Portal Maintenance Mode)</h3>
+              <span class="app-badge badge-maintenance">ป้องกันผู้ใช้เข้าใช้งานระหว่างปรับปรุงระบบ</span>
+            </div>
+            <p class="admin-muted" style="margin-bottom:12px;color:#7c2d12;">
+              เมื่อเปิดโหมดนี้ ผู้ใช้ทั่วไปจะเห็นหน้าจอแจ้งปิดปรับปรุงและไม่สามารถคลิกเข้าระบบงานได้ (ส่วน Admin ที่ล็อกอินอยู่จะยังเห็นการ์ดและกดทดสอบได้ตามปกติ)
+            </p>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="set-maintenance-mode">สถานะโหมดปิดปรับปรุงทั้งระบบ</label>
+                <select id="set-maintenance-mode" class="admin-input">
+                  <option value="FALSE">🟢 เปิดให้บริการตามปกติ (ปิดโหมด Maintenance)</option>
+                  <option value="TRUE">🟠 ปิดปรับปรุงระบบชั่วคราว (เปิดโหมด Maintenance)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="set-maintenance-eta">กำหนดเวลาที่คาดว่าจะเปิดใช้งานอีกครั้ง (เว้นว่างได้)</label>
+                <input type="text" id="set-maintenance-eta" class="admin-input" placeholder="เช่น วันนี้ เวลา 13.30 น. หรือ 26 พ.ย. 2569" />
+              </div>
+            </div>
+            <div class="admin-form-group" style="margin-bottom:0;">
+              <label for="set-maintenance-text">ข้อความชี้แจงบนหน้าจอปิดปรับปรุง</label>
+              <input type="text" id="set-maintenance-text" class="admin-input" placeholder="เช่น ขออภัยในความไม่สะดวก ระบบกำลังอยู่ระหว่างการอัปเดตฐานข้อมูลหลักสูตร กรุณากลับมาใช้งานอีกครั้งในภายหลัง" />
+            </div>
+          </div>
+
           <div class="admin-editor-box" style="display:block;">
             <h3 style="font-size:1rem;margin-bottom:12px;">ตั้งค่าแถบประกาศด่วนด้านบนสุด &amp; ข้อความหน้าเว็บ</h3>
             <div class="admin-grid-2">

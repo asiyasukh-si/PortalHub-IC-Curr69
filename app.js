@@ -297,6 +297,11 @@ function renderCategoryFilters() {
   });
 }
 
+function isAppUnderMaintenance(badgeType) {
+  const t = String(badgeType || '').trim().toLowerCase();
+  return t === 'maintenance';
+}
+
 function renderTopBar(topBarApps) {
   const section = document.getElementById('top-bar-section');
   const container = document.getElementById('top-bar-container');
@@ -315,10 +320,12 @@ function renderTopBar(topBarApps) {
     .map((app) => {
       const badgeType = (app.badge_type || 'active').trim().toLowerCase();
       const validUrl = isValidHttpUrl(app.app_url);
-      const isDisabled = badgeType === 'coming_soon' || !validUrl;
+      const isMaint = isAppUnderMaintenance(badgeType);
+      const isDisabled = badgeType === 'coming_soon' || isMaint || !validUrl;
       const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
-      const badgeHtml = app.badge_text
-        ? `<span class="app-badge quick-card-badge badge-${escapeHtml(badgeType)}">${escapeHtml(app.badge_text)}</span>`
+      const badgeLabel = isMaint ? (app.badge_text || 'ปิดปรับปรุงชั่วคราว') : app.badge_text;
+      const badgeHtml = badgeLabel
+        ? `<span class="app-badge quick-card-badge badge-${escapeHtml(badgeType)}">${escapeHtml(badgeLabel)}</span>`
         : '';
       const descText = (app.description || app.target_users || '').trim();
       const tooltipText = [app.app_title, descText].filter(Boolean).join(' — ');
@@ -349,9 +356,60 @@ function renderTopBar(topBarApps) {
   section.classList.remove('hidden');
 }
 
+function updateFullMaintenanceView() {
+  const isFullMaint = isTruthyFlag(settings.maintenance_mode);
+  const isAdminLoggedIn = !!(adminState && adminState.user);
+  const maintScreen = document.getElementById('maintenance-screen');
+  const adminBanner = document.getElementById('admin-maintenance-banner');
+  const toolbarEl = document.querySelector('.toolbar');
+
+  if (maintScreen) {
+    const descEl = document.getElementById('maintenance-desc');
+    if (descEl) {
+      descEl.textContent =
+        settings.maintenance_text ||
+        'ขออภัยในความไม่สะดวก ผู้ดูแลระบบกำลังอัปเดตข้อมูลหลักสูตรและระบบงาน กรุณากลับมาใช้งานอีกครั้งในภายหลัง';
+    }
+    const etaBox = document.getElementById('maintenance-eta-box');
+    const etaText = document.getElementById('maintenance-eta-text');
+    if (etaBox && etaText) {
+      const eta = (settings.maintenance_eta || '').trim();
+      if (eta) {
+        etaText.textContent = eta;
+        etaBox.classList.remove('hidden');
+      } else {
+        etaBox.classList.add('hidden');
+      }
+    }
+  }
+
+  if (isFullMaint && !isAdminLoggedIn) {
+    maintScreen?.classList.remove('hidden');
+    adminBanner?.classList.add('hidden');
+    toolbarEl?.classList.add('hidden');
+    document.getElementById('top-bar-section')?.classList.add('hidden');
+    document.getElementById('apps-container').innerHTML = '';
+    document.getElementById('status-message')?.classList.add('hidden');
+    return true;
+  }
+
+  maintScreen?.classList.add('hidden');
+  toolbarEl?.classList.remove('hidden');
+  if (isFullMaint && isAdminLoggedIn) {
+    adminBanner?.classList.remove('hidden');
+  } else {
+    adminBanner?.classList.add('hidden');
+  }
+  return false;
+}
+
 function renderApps() {
   const container = document.getElementById('apps-container');
   const statusEl = document.getElementById('status-message');
+
+  if (updateFullMaintenanceView()) {
+    return;
+  }
 
   const query = searchQuery.trim().toLowerCase();
   const filtered = allApps.filter((app) => {
@@ -393,6 +451,7 @@ function renderApps() {
 
   const openText = settings.btn_open_text || 'เข้าสู่ระบบงาน →';
   const disabledText = settings.btn_disabled_text || 'อยู่ระหว่างพัฒนา';
+  const maintBtnText = '🔧 ปิดปรับปรุงชั่วคราว';
 
   let html = '';
   grouped.forEach((apps, categoryName) => {
@@ -404,13 +463,17 @@ function renderApps() {
             .map((app) => {
               const badgeType = (app.badge_type || 'active').trim().toLowerCase();
               const validUrl = isValidHttpUrl(app.app_url);
-              const isDisabled = badgeType === 'coming_soon' || !validUrl;
+              const isMaint = isAppUnderMaintenance(badgeType);
+              const isDisabled = badgeType === 'coming_soon' || isMaint || !validUrl;
               const iconSvg = ICONS[(app.icon_name || '').trim().toLowerCase()] || ICONS.default;
+              const badgeLabel = isMaint ? (app.badge_text || 'ปิดปรับปรุงชั่วคราว') : app.badge_text;
 
               const btnLabel = isDisabled
-                ? badgeType === 'coming_soon'
-                  ? disabledText
-                  : 'รอระบุลิงก์ในฐานข้อมูล'
+                ? isMaint
+                  ? maintBtnText
+                  : badgeType === 'coming_soon'
+                    ? disabledText
+                    : 'รอระบุลิงก์ในฐานข้อมูล'
                 : openText;
 
               return `
@@ -418,8 +481,8 @@ function renderApps() {
                   <div class="card-top">
                     <div class="app-icon-wrap" aria-hidden="true">${iconSvg}</div>
                     ${
-                      app.badge_text
-                        ? `<span class="app-badge badge-${escapeHtml(badgeType)}">${escapeHtml(app.badge_text)}</span>`
+                      badgeLabel
+                        ? `<span class="app-badge badge-${escapeHtml(badgeType)}">${escapeHtml(badgeLabel)}</span>`
                         : ''
                     }
                   </div>
@@ -750,6 +813,7 @@ function showAdminLoginBox(errMsg) {
   document.getElementById('portal-admin-login-box').classList.remove('hidden');
   document.getElementById('portal-admin-user-badge').classList.add('hidden');
   document.getElementById('btn-portal-admin-logout').classList.add('hidden');
+  renderApps();
   const errEl = document.getElementById('portal-admin-login-error');
   if (errMsg) {
     errEl.textContent = errMsg;
@@ -800,6 +864,8 @@ function renderAdminAppsTable() {
   tbody.innerHTML = sorted
     .map((app) => {
       const isVis = isTruthyFlag(app.is_visible);
+      const bType = (app.badge_type || 'active').toLowerCase();
+      const isMaint = isAppUnderMaintenance(bType);
       const zone = getDisplayZone(app);
       const zoneLabel =
         zone === 'TOP_BAR'
@@ -808,6 +874,11 @@ function renderAdminAppsTable() {
       const visLabel = isVis
         ? '<span style="color:#166534;font-weight:700;">แสดง</span>'
         : '<span style="color:#b91c1c;">ซ่อน</span>';
+      const maintToggleBtn = `<button type="button" class="admin-btn-outline admin-btn-sm" style="${
+        isMaint ? 'background:#e5f6ed;color:#166534;border-color:#bce4cf;' : 'background:#fff7ed;color:#9a3412;border-color:#fdba74;'
+      }" onclick="toggleAppMaintenance('${escapeJsStr(app.app_id)}')">${
+        isMaint ? '🟢 เปิดใช้งาน' : '🔧 ปิดปรับปรุง'
+      }</button>`;
 
       return `
         <tr>
@@ -818,9 +889,10 @@ function renderAdminAppsTable() {
             <div style="font-weight:700;">${escapeHtml(app.app_title)}</div>
             <div style="font-size:0.78rem;color:#64577a;">หมวด: ${escapeHtml(app.category || '-')}</div>
           </td>
-          <td><span class="app-badge badge-${escapeHtml((app.badge_type || 'active').toLowerCase())}">${escapeHtml(app.badge_text || '-')}</span></td>
+          <td><span class="app-badge badge-${escapeHtml(bType)}">${escapeHtml(app.badge_text || '-')}</span></td>
           <td style="text-align:center;">${visLabel}</td>
-          <td style="text-align:center;">
+          <td style="text-align:center;white-space:nowrap;">
+            ${maintToggleBtn}
             <button type="button" class="admin-btn-outline admin-btn-sm" onclick="openAdminAppEditor('${escapeJsStr(app.app_id)}')">แก้ไข</button>
             <button type="button" class="admin-btn-danger admin-btn-sm" onclick="deleteAdminApp('${escapeJsStr(app.app_id)}')">ลบ</button>
           </td>
@@ -894,11 +966,59 @@ window.deleteAdminApp = async function (appId) {
   }
 };
 
+window.toggleAppMaintenance = async function (appId) {
+  const existing = adminState.apps.find(
+    (a) => String(a.app_id || '').toUpperCase() === String(appId).toUpperCase()
+  );
+  if (!existing) return;
+  const currentlyMaint = isAppUnderMaintenance(existing.badge_type);
+  const nextType = currentlyMaint ? 'active' : 'maintenance';
+  const nextText = currentlyMaint ? 'เปิดใช้งาน' : 'ปิดปรับปรุงชั่วคราว';
+
+  try {
+    const res = await callPortalAdminPost({
+      action: 'portal_save_app',
+      auth_token: adminState.token,
+      app: {
+        ...existing,
+        badge_type: nextType,
+        badge_text: nextText,
+        is_visible: isTruthyFlag(existing.is_visible) ? 'TRUE' : 'FALSE',
+        display_zone: getDisplayZone(existing),
+      },
+    });
+    if (!res.success) {
+      if (res.expired) showAdminLoginBox(res.message);
+      else showPortalToast(res.message);
+      return;
+    }
+    applyAdminWorkspaceData(res.data);
+    showPortalToast(
+      currentlyMaint
+        ? `เปิดให้บริการระบบ ${existing.app_id} ตามปกติแล้วครับ`
+        : `ตั้งค่าระบบ ${existing.app_id} เป็น "ปิดปรับปรุงชั่วคราว" แล้วครับ`
+    );
+  } catch (err) {
+    showPortalToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message);
+  }
+};
+
 function populateAdminSettingsForm() {
   const map = {};
   (adminState.settings || []).forEach((r) => {
     if (r.setting_key) map[r.setting_key.trim()] = r.setting_value || '';
   });
+  if (document.getElementById('set-maintenance-mode')) {
+    document.getElementById('set-maintenance-mode').value = isTruthyFlag(map.maintenance_mode) ? 'TRUE' : 'FALSE';
+  }
+  if (document.getElementById('set-maintenance-eta')) {
+    document.getElementById('set-maintenance-eta').value = map.maintenance_eta || '';
+  }
+  if (document.getElementById('set-maintenance-text')) {
+    document.getElementById('set-maintenance-text').value =
+      map.maintenance_text ||
+      'ขออภัยในความไม่สะดวก ผู้ดูแลระบบกำลังอัปเดตข้อมูลหลักสูตรและระบบงาน กรุณากลับมาใช้งานอีกครั้งในภายหลัง';
+  }
   document.getElementById('set-show-notice').value = isTruthyFlag(map.show_notice) ? 'TRUE' : 'FALSE';
   document.getElementById('set-notice-text').value = map.notice_text || '';
   document.getElementById('set-site-title').value = map.site_title || document.getElementById('site-title').textContent;
@@ -1111,6 +1231,9 @@ function setupPortalAdminEvents() {
     btn.textContent = 'กำลังบันทึก...';
     try {
       const settingsPayload = {
+        maintenance_mode: document.getElementById('set-maintenance-mode')?.value || 'FALSE',
+        maintenance_eta: (document.getElementById('set-maintenance-eta')?.value || '').trim(),
+        maintenance_text: (document.getElementById('set-maintenance-text')?.value || '').trim(),
         show_notice: document.getElementById('set-show-notice').value,
         notice_text: document.getElementById('set-notice-text').value.trim(),
         site_title: document.getElementById('set-site-title').value.trim(),
