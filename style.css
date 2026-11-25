@@ -291,6 +291,168 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn, .ext
   gap: 8px;
 }
 
+.role-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(244, 237, 253, 0.85);
+  border: 1.5px solid var(--primary-border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.role-pill {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.role-pill:hover {
+  color: var(--primary);
+}
+
+.role-pill.active {
+  background: var(--accent-yellow-bg);
+  color: var(--accent-yellow-text);
+  box-shadow: 0 2px 8px rgba(133, 93, 14, 0.14);
+  font-weight: 600;
+}
+
+/* =========================================================
+   แถบข่าวประกาศล่าสุดอัตโนมัติ (Live Announcements Ticker)
+   ========================================================= */
+.live-announcements-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--primary-border);
+  border-left: 5px solid var(--primary);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(93, 70, 138, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.live-ann-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--primary);
+  padding: 4px 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.live-ann-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.live-ann-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.live-ann-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #faf7fe;
+  border: 1px solid var(--primary-border);
+  max-width: 100%;
+  transition: all 0.18s ease;
+}
+
+.live-ann-item:hover {
+  background: var(--accent-yellow-bg);
+  border-color: var(--accent-yellow-border);
+  color: var(--accent-yellow-text);
+  transform: translateY(-1px);
+}
+
+.live-ann-pin {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-yellow-text);
+  background: var(--accent-yellow-bg);
+  border: 1px solid var(--accent-yellow-border);
+  padding: 1px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.live-ann-org {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.live-ann-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+  font-weight: 500;
+}
+
+.live-ann-more {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.live-ann-more:hover {
+  text-decoration: underline;
+}
+
+.app-dual-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.app-btn-secondary {
+  background: var(--accent-yellow-bg);
+  color: var(--accent-yellow-text);
+  border: 1.5px solid var(--accent-yellow-border);
+}
+
+.app-btn-secondary:hover {
+  background: #fceca8;
+  color: #6b4908;
+  box-shadow: 0 6px 14px rgba(133, 93, 14, 0.16);
+}
+
 .filter-pill {
   border: 1px solid var(--primary-border);
   background: rgba(255, 255, 255, 0.9);
@@ -885,6 +1047,43 @@ a.quick-card:hover .quick-card-arrow {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  text-align: left;
+}
+
+.footer-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--primary-border);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.footer-admin-btn svg {
+  width: 13px;
+  height: 13px;
+  color: var(--primary);
+}
+
+.footer-admin-btn:hover {
+  background: var(--accent-yellow-bg);
+  color: var(--accent-yellow-text);
+  border-color: var(--accent-yellow-border);
 }
 
 .footer-text {

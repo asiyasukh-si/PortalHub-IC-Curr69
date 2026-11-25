@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม (พ.ศ. 2569)</title>
+  <title>ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -32,12 +32,12 @@
             <img id="dept-logo" class="dept-logo hidden" src="" alt="โลโก้ภาควิชาเคมีอุตสาหกรรม" />
             <div class="brand-text">
               <span id="dept-badge" class="dept-badge">ภาควิชาเคมีอุตสาหกรรม • คณะวิทยาศาสตร์ มช.</span>
-              <h1 id="site-title" class="site-title">ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม (พ.ศ. 2569)</h1>
-              <p id="site-subtitle" class="site-subtitle">ศูนย์รวมระบบงานออนไลน์สำหรับคณาจารย์และบุคลากร ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่</p>
+              <h1 id="site-title" class="site-title">ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม</h1>
+              <p id="site-subtitle" class="site-subtitle">ศูนย์รวมระบบงานออนไลน์สำหรับนักศึกษาและคณาจารย์ ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่ (รองรับหลักสูตร พ.ศ. 2564 และ 2569)</p>
             </div>
           </div>
 
-          <!-- ปุ่มจัดการรหัสผ่านอาจารย์และปุ่มจัดการ Portal (Admin) มุมขวาบน -->
+          <!-- ปุ่มจัดการรหัสผ่านอาจารย์มุมขวาบน -->
           <div class="hero-actions">
             <a
               id="btn-passcode-manager"
@@ -51,24 +51,12 @@
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
-              <span>จัดการรหัสผ่าน</span>
+              <span>จัดการรหัสผ่านอาจารย์</span>
             </a>
-            <button
-              id="btn-portal-admin"
-              type="button"
-              class="passcode-btn admin-portal-btn"
-              title="สำหรับผู้ดูแลระบบ (Admin) จัดการการ์ดระบบงาน แถบประกาศ และลิงก์หน่วยงานโดยไม่ต้องแก้ Google Sheet"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-              <span>จัดการ Portal (Admin)</span>
-            </button>
           </div>
         </div>
 
-        <!-- ช่องค้นหาและตัวกรองหมวดหมู่ -->
+        <!-- ช่องค้นหา ตัวสลับมุมมองตามบทบาทผู้ใช้งาน และตัวกรองหมวดหมู่ -->
         <div class="toolbar">
           <div class="search-box">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -76,6 +64,11 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="search" id="search-input" placeholder="ค้นหาระบบงาน หรือคำอธิบาย..." autocomplete="off" />
+          </div>
+          <div class="role-switcher" id="role-switcher" role="group" aria-label="กรองตามกลุ่มผู้ใช้งาน">
+            <button type="button" class="role-pill active" data-role="ALL">ทุกระบบงาน</button>
+            <button type="button" class="role-pill" data-role="STUDENT">สำหรับนักศึกษา</button>
+            <button type="button" class="role-pill" data-role="FACULTY">สำหรับอาจารย์</button>
           </div>
           <div id="category-filters" class="category-filters" role="tablist" aria-label="หมวดหมู่ระบบงาน"></div>
         </div>
@@ -114,6 +107,19 @@
           <p>กำลังโหลดข้อมูลระบบงานจากฐานข้อมูล...</p>
         </div>
 
+        <!-- แถบข่าวประกาศล่าสุดอัตโนมัติ (ดึงจากระบบประกาศสำคัญ APP07) -->
+        <section id="live-announcements-bar" class="live-announcements-bar hidden" aria-label="ประกาศสำคัญล่าสุด">
+          <div class="live-ann-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 11l18-5v12L3 14v-3z"></path>
+              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
+            </svg>
+            <span>ประกาศล่าสุด</span>
+          </div>
+          <div id="live-announcements-list" class="live-ann-list"></div>
+          <a id="live-announcements-more" class="live-ann-more" href="https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec" target="_blank" rel="noopener noreferrer">ดูทั้งหมด →</a>
+        </section>
+
         <!-- แถบเมนูลัดแนวนอนขนาดกะทัดรัดด้านบน (Top Quick-Access Bar: display_zone = TOP_BAR) -->
         <section id="top-bar-section" class="top-bar-section hidden" aria-label="เมนูลัดบริการทั่วไปและประกาศสำคัญ">
           <div class="top-bar-header">
@@ -137,11 +143,27 @@
       </div>
     </main>
 
-    <!-- ส่วนท้าย -->
+    <!-- ส่วนท้าย (พร้อมปุ่มจัดการ Portal สำหรับผู้ดูแลระบบแบบกลมกลืน) -->
     <footer class="site-footer">
       <div class="container footer-inner">
-        <p id="footer-text" class="footer-text">© 2569 ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่</p>
-        <p id="contact-info" class="contact-info">ติดต่อผู้ดูแลระบบ / แจ้งปัญหาการใช้งาน: ผู้ดูแลระบบหลักสูตร วท.บ. เคมีอุตสาหกรรม</p>
+        <div class="footer-row">
+          <div>
+            <p id="footer-text" class="footer-text">© 2569 ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่</p>
+            <p id="contact-info" class="contact-info">ติดต่อผู้ดูแลระบบ / แจ้งปัญหาการใช้งาน: ผู้ดูแลระบบหลักสูตร วท.บ. เคมีอุตสาหกรรม</p>
+          </div>
+          <button
+            id="btn-portal-admin"
+            type="button"
+            class="footer-admin-btn"
+            title="สำหรับผู้ดูแลระบบ (Admin) จัดการการ์ดระบบงาน แถบประกาศ โหมดปิดปรับปรุง และลิงก์หน่วยงาน"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>จัดการ Portal (Admin)</span>
+          </button>
+        </div>
       </div>
     </footer>
   </div>

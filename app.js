@@ -12,6 +12,8 @@ const CONFIG = {
     'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
   DEFAULT_PASSCODE_URL:
     'https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec',
+   ANNOUNCEMENTS_PUBLISHED_CSV_URL:
+    'https://docs.google.com/spreadsheets/d/1dQ4_BVdwlscYQ80WlqG-7TX2v1IlBjMx5wOriYZ9VvI/gviz/tq?tqx=out:csv&sheet=Announcements',
   FALLBACK_APP_URLS: {
     APP03:
       'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
@@ -40,6 +42,7 @@ let rawPortalApps = [];
 let rawExternalLinks = [];
 let settings = {};
 let activeCategory = 'ทั้งหมด';
+let activeRole = 'ALL'; // 'ALL' | 'STUDENT' | 'FACULTY'
 let searchQuery = '';
 let adminState = {
   token: '',
@@ -188,11 +191,20 @@ function applySettings(settingsRows) {
   const root = document.documentElement;
 
   if (settings.site_title) {
-    document.title = settings.site_title;
-    document.getElementById('site-title').textContent = settings.site_title;
+    let cleanSiteTitle = settings.site_title.trim();
+    if (cleanSiteTitle.includes('ฉบับปรับปรุง พ.ศ. 2569') || cleanSiteTitle.includes('(พ.ศ. 2569)')) {
+      cleanSiteTitle = 'ระบบสารสนเทศหลักสูตรเคมีอุตสาหกรรม';
+    }
+    document.title = cleanSiteTitle;
+    document.getElementById('site-title').textContent = cleanSiteTitle;
   }
   if (settings.site_subtitle) {
-    document.getElementById('site-subtitle').textContent = settings.site_subtitle;
+    let cleanSubtitle = settings.site_subtitle.trim();
+    if (!cleanSubtitle.includes('นักศึกษา')) {
+      cleanSubtitle =
+        'ศูนย์รวมระบบงานออนไลน์สำหรับนักศึกษาและคณาจารย์ ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่ (รองรับหลักสูตร พ.ศ. 2564 และ 2569)';
+    }
+    document.getElementById('site-subtitle').textContent = cleanSubtitle;
   }
   if (settings.dept_badge) {
     document.getElementById('dept-badge').textContent = settings.dept_badge;
@@ -403,6 +415,23 @@ function updateFullMaintenanceView() {
   return false;
 }
 
+function matchesRoleFilter(app) {
+  if (!activeRole || activeRole === 'ALL') return true;
+  const appId = String(app.app_id || '').trim().toUpperCase();
+  const badgeType = String(app.badge_type || '').trim().toLowerCase();
+  const usersText = String(app.target_users || '').toLowerCase();
+
+  if (activeRole === 'STUDENT') {
+    if (appId === 'APP03' || appId === 'APP04') return false;
+    if (badgeType === 'restricted' && !usersText.includes('นักศึกษา')) return false;
+    return true;
+  }
+  if (activeRole === 'FACULTY') {
+    return true;
+  }
+  return true;
+}
+
 function renderApps() {
   const container = document.getElementById('apps-container');
   const statusEl = document.getElementById('status-message');
@@ -413,6 +442,7 @@ function renderApps() {
 
   const query = searchQuery.trim().toLowerCase();
   const filtered = allApps.filter((app) => {
+    if (!matchesRoleFilter(app)) return false;
     const matchCategory = activeCategory === 'ทั้งหมด' || (app.category || 'อื่นๆ') === activeCategory;
     if (!matchCategory) return false;
     if (!query) return true;
@@ -504,7 +534,12 @@ function renderApps() {
                   ${
                     isDisabled
                       ? `<span class="app-btn btn-disabled" aria-disabled="true">${escapeHtml(btnLabel)}</span>`
-                      : `<a class="app-btn" href="${escapeHtml(app.app_url.trim())}" target="_blank" rel="noopener noreferrer">${escapeHtml(btnLabel)}</a>`
+                      : String(app.app_id || '').trim().toUpperCase() === 'APP01'
+                        ? `<div class="app-dual-btns">
+                             <a class="app-btn" href="${escapeHtml(app.app_url.trim())}?curr=2569" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2569 สำหรับนักศึกษารหัส 69 เป็นต้นไป">หลักสูตร 2569 (รหัส 69+)</a>
+                             <a class="app-btn app-btn-secondary" href="${escapeHtml(app.app_url.trim())}?curr=2564" target="_blank" rel="noopener noreferrer" title="วางแผนการเรียนหลักสูตร 2564 สำหรับนักศึกษารหัส 64-68 (แผน 1 และแผน 2)">หลักสูตร 2564 (รหัส 64-68)</a>
+                           </div>`
+                        : `<a class="app-btn" href="${escapeHtml(app.app_url.trim())}" target="_blank" rel="noopener noreferrer">${escapeHtml(btnLabel)}</a>`
                   }
                 </article>
               `;
@@ -576,9 +611,22 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
     let appTitle = (app.app_title || '').trim();
     let description = (app.description || '').trim();
 
-    if (appId === 'APP06') {
+    if (appId === 'APP01') {
+      if (appTitle.includes('หลักสูตร 2569')) {
+        appTitle = 'ระบบวางแผนการลงทะเบียนเรียน (Study Plan 2564 & 2569)';
+      }
+      if (!description.includes('2564')) {
+        description =
+          'จำลองแผนการเรียน 4 ปี ตรวจสอบหน่วยกิตและวิชาบังคับก่อน รองรับทั้งหลักสูตร พ.ศ. 2564 (รหัส 64-68 แผน 1/แผน 2) และ พ.ศ. 2569 (รหัส 69+)';
+      }
+    } else if (appId === 'APP02') {
+      if (!appTitle.includes('มคอ.3') && !appTitle.includes('OBE')) {
+        appTitle = 'ระบบสืบค้นข้อกำหนดกระบวนวิชา (มคอ.3 / OBE)';
+      }
+    } else if (appId === 'APP06') {
       if (!iconName || iconName === 'sparkles' || iconName === 'default') iconName = 'clipboard';
       if (badgeType === 'restricted') badgeType = 'active';
+      if (appTitle === 'ระบบยื่นคำร้อง') appTitle = 'ระบบยื่นคำร้องและเอกสารนักศึกษา';
     } else if (appId === 'APP07') {
       if (!iconName || iconName === 'folder' || iconName === 'default') iconName = 'megaphone';
       if (appTitle === 'ประกาศ') appTitle = 'ประกาศสำคัญและข่าวสาร';
@@ -1304,7 +1352,110 @@ function setupPortalAdminEvents() {
   });
 }
 
+function getApp07LiveUrl() {
+  const app07 = (rawPortalApps || []).find((a) => String(a.app_id || '').toUpperCase() === 'APP07');
+  if (app07 && isValidHttpUrl(app07.app_url)) return app07.app_url.trim();
+  return CONFIG.FALLBACK_APP_URLS.APP07;
+}
+
+function renderLiveAnnouncementsTicker(items) {
+  const bar = document.getElementById('live-announcements-bar');
+  const listEl = document.getElementById('live-announcements-list');
+  const moreEl = document.getElementById('live-announcements-more');
+  if (!bar || !listEl) return;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    bar.classList.add('hidden');
+    return;
+  }
+
+  const app07Url = getApp07LiveUrl();
+  if (moreEl) moreEl.href = app07Url;
+
+  listEl.innerHTML = items
+    .slice(0, 3)
+    .map((it) => {
+      const pinBadge = it.is_pinned ? '<span class="live-ann-pin">ปักหมุด</span>' : '';
+      const orgTag = it.source_org ? `<span class="live-ann-org">[${escapeHtml(it.source_org)}]</span>` : '';
+      return `
+        <a class="live-ann-item" href="${escapeHtml(app07Url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(it.title_th)}">
+          ${pinBadge}
+          ${orgTag}
+          <span class="live-ann-title">${escapeHtml(it.title_th)}</span>
+        </a>
+      `;
+    })
+    .join('');
+
+  bar.classList.remove('hidden');
+}
+
+async function loadLiveAnnouncementsTicker() {
+  // 1) ลองดึงจากชีตประกาศสำคัญ (APP07) ผ่าน Google Visualization CSV ก่อน
+  try {
+    const res = await fetch(CONFIG.ANNOUNCEMENTS_PUBLISHED_CSV_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const csvText = await res.text();
+      const rows = parseCSV(csvText);
+      const today = new Date().toISOString().slice(0, 10);
+      const valid = rows
+        .filter((r) => {
+          const aid = (r.announce_id || '').trim();
+          const title = (r.title_th || '').trim();
+          const stat = (r.status || 'PUBLISHED').trim().toUpperCase();
+          const exp = (r.expire_date || '').trim();
+          if (!aid || !title) return false;
+          if (stat && stat !== 'PUBLISHED') return false;
+          if (exp && exp < today) return false;
+          return true;
+        })
+        .map((r) => ({
+          announce_id: r.announce_id,
+          published_at: r.published_at || '',
+          source_org: r.source_org || '',
+          title_th: r.title_th,
+          is_pinned: isTruthyFlag(r.is_pinned),
+        }))
+        .sort((a, b) => {
+          if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+          return String(b.published_at).localeCompare(String(a.published_at));
+        });
+      if (valid.length > 0) {
+        renderLiveAnnouncementsTicker(valid.slice(0, 3));
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // 2) หากชีต APP07 เป็น Private ให้ดึงผ่าน GAS API (action=portal_announcements)
+  const urls = getCandidateAdminApiUrls();
+  for (const apiUrl of urls) {
+    try {
+      const res = await fetch(`${apiUrl}?action=portal_announcements`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+        renderLiveAnnouncementsTicker(data.items);
+        return;
+      }
+    } catch (e) {}
+  }
+}
+
+function setupRoleSwitcherEvents() {
+  const wrap = document.getElementById('role-switcher');
+  if (!wrap) return;
+  wrap.querySelectorAll('.role-pill').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeRole = btn.getAttribute('data-role') || 'ALL';
+      wrap.querySelectorAll('.role-pill').forEach((b) => b.classList.toggle('active', b === btn));
+      renderApps();
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initPortal();
+  setupRoleSwitcherEvents();
   setupPortalAdminEvents();
+  loadLiveAnnouncementsTicker();
 });
