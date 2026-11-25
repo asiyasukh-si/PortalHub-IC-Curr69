@@ -199,10 +199,12 @@ function applySettings(settingsRows) {
     document.getElementById('site-title').textContent = cleanSiteTitle;
   }
   if (settings.site_subtitle) {
-    let cleanSubtitle = settings.site_subtitle.trim();
+    let cleanSubtitle = settings.site_subtitle
+      .replace(/\s*\(รองรับหลักสูตร[^)]*\)/g, '')
+      .trim();
     if (!cleanSubtitle.includes('นักศึกษา')) {
       cleanSubtitle =
-        'ศูนย์รวมระบบงานออนไลน์สำหรับนักศึกษาและคณาจารย์ ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่ (รองรับหลักสูตร พ.ศ. 2564 และ 2569)';
+        'ศูนย์รวมระบบงานออนไลน์สำหรับนักศึกษาและคณาจารย์ ภาควิชาเคมีอุตสาหกรรม คณะวิทยาศาสตร์ มหาวิทยาลัยเชียงใหม่';
     }
     document.getElementById('site-subtitle').textContent = cleanSubtitle;
   }
