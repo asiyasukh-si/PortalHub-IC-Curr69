@@ -25,15 +25,28 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
   },
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
+  ADMIN_SESSION_KEY: 'ic2569_portal_admin_session_token',
+  ADMIN_API_URL:
+    'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
   LEGACY_NAVY_OVERLAY: '#0f2942',
   LEGACY_NAVY_PRIMARY: '#1e3a5f',
 };
 
 // สถานะข้อมูลในหน้าเว็บ
 let allApps = [];
+let rawPortalApps = [];
+let rawExternalLinks = [];
 let settings = {};
 let activeCategory = 'ทั้งหมด';
 let searchQuery = '';
+let adminState = {
+  token: '',
+  user: null,
+  facultyLoaded: false,
+  apps: [],
+  settings: [],
+  externalLinks: [],
+};
 
 // ชุดไอคอน SVG สำเร็จรูป (รองรับค่าจากคอลัมน์ icon_name)
 const ICONS = {
@@ -139,6 +152,22 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function escapeJsStr(str) {
+  return escapeHtml(
+    String(str !== undefined && str !== null ? str : '')
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+  );
+}
+
+function isTruthyFlag(val) {
+  const s = String(val !== undefined && val !== null ? val : '').trim().toUpperCase();
+  return s === 'TRUE' || s === '1' || s === 'YES';
+}
+
 function isValidHttpUrl(url) {
   return /^https?:\/\/.+/i.test((url || '').trim());
 }
@@ -178,7 +207,7 @@ function applySettings(settingsRows) {
 
   // แถบประกาศ
   const noticeBar = document.getElementById('notice-bar');
-  const showNotice = String(settings.show_notice || '').toUpperCase() === 'TRUE';
+  const showNotice = isTruthyFlag(settings.show_notice);
   if (showNotice && settings.notice_text) {
     document.getElementById('notice-text').textContent = settings.notice_text;
     noticeBar.classList.remove('hidden');
@@ -435,7 +464,7 @@ function renderExternalLinks(linkRows) {
   const visibleLinks = (linkRows || [])
     .filter(
       (item) =>
-        String(item.is_visible || '').toUpperCase() === 'TRUE' &&
+        isTruthyFlag(item.is_visible) &&
         item.link_title &&
         isValidHttpUrl(item.link_url)
     )
@@ -470,10 +499,10 @@ function renderExternalLinks(linkRows) {
   section.classList.remove('hidden');
 }
 
-function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
-  applySettings(parseCSV(settingsCsv));
+function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
+  applySettings(settingsRows || []);
 
-  const parsedApps = parseCSV(appsCsv).map((app) => {
+  const parsedApps = (appsRows || []).map((app) => {
     const appId = (app.app_id || '').trim().toUpperCase();
     const rawUrl = (app.app_url || '').trim();
     const fallbackUrl = CONFIG.FALLBACK_APP_URLS[appId] || '';
@@ -503,6 +532,9 @@ function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
     };
   });
 
+  rawPortalApps = parsedApps;
+  rawExternalLinks = extLinksRows || [];
+
   // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
   const passcodeApp = parsedApps.find(
     (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
@@ -516,15 +548,23 @@ function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
   }
 
   allApps = parsedApps
-    .filter((app) => String(app.is_visible || '').toUpperCase() === 'TRUE')
+    .filter((app) => isTruthyFlag(app.is_visible))
     .sort((a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999));
 
   renderCategoryFilters();
   renderApps();
 
-  if (extLinksCsv) {
-    renderExternalLinks(parseCSV(extLinksCsv));
+  if (extLinksRows) {
+    renderExternalLinks(extLinksRows);
   }
+}
+
+function processPortalData(settingsCsv, appsCsv, extLinksCsv) {
+  applyPortalObjects(
+    parseCSV(settingsCsv),
+    parseCSV(appsCsv),
+    extLinksCsv ? parseCSV(extLinksCsv) : []
+  );
 }
 
 // =========================================================
@@ -592,4 +632,527 @@ document.getElementById('search-input').addEventListener('input', (e) => {
   renderApps();
 });
 
-document.addEventListener('DOMContentLoaded', initPortal);
+// =========================================================
+// ระบบจัดการข้อมูลหน้า Portal Hub สำหรับผู้ดูแลระบบ (Admin UI)
+// =========================================================
+function showPortalToast(msg) {
+  const el = document.getElementById('portal-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(showPortalToast._timer);
+  showPortalToast._timer = setTimeout(() => el.classList.add('hidden'), 3400);
+}
+
+async function callPortalAdminPost(payload) {
+  const res = await fetch(CONFIG.ADMIN_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadPortalAdminFacultyList() {
+  if (adminState.facultyLoaded) return;
+  const sel = document.getElementById('portal-admin-faculty');
+  if (!sel) return;
+  try {
+    const res = await fetch(`${CONFIG.ADMIN_API_URL}?action=portal_faculty`, { cache: 'no-store' });
+    const data = await res.json();
+    if (data && data.success && Array.isArray(data.faculty)) {
+      sel.innerHTML =
+        '<option value="">-- เลือกชื่ออาจารย์ผู้ดูแลระบบ --</option>' +
+        data.faculty
+          .map(
+            (f) =>
+              `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
+          )
+          .join('');
+      adminState.facultyLoaded = true;
+    } else {
+      sel.innerHTML = '<option value="">ไม่สามารถโหลดรายชื่อได้ (โปรดอัปเดตเวอร์ชัน GAS APP03)</option>';
+    }
+  } catch (err) {
+    sel.innerHTML = '<option value="">เชื่อมต่อระบบรหัสผ่านกลางไม่สำเร็จ</option>';
+  }
+}
+
+function applyAdminWorkspaceData(data) {
+  adminState.apps = Array.isArray(data.apps) ? data.apps : [];
+  adminState.settings = Array.isArray(data.settings) ? data.settings : [];
+  adminState.externalLinks = Array.isArray(data.externalLinks) ? data.externalLinks : [];
+
+  // อัปเดตหน้าเว็บ Portal Hub ทันทีโดยไม่ต้องรอ CSV Cache
+  applyPortalObjects(adminState.settings, adminState.apps, adminState.externalLinks);
+
+  renderAdminAppsTable();
+  populateAdminSettingsForm();
+  renderAdminLinksTable();
+}
+
+function showAdminWorkspace(user, token, data) {
+  adminState.user = user;
+  adminState.token = token;
+  try {
+    localStorage.setItem(CONFIG.ADMIN_SESSION_KEY, token);
+  } catch (e) {}
+
+  document.getElementById('portal-admin-login-box').classList.add('hidden');
+  document.getElementById('portal-admin-workspace').classList.remove('hidden');
+  const badge = document.getElementById('portal-admin-user-badge');
+  if (badge) {
+    badge.textContent = `${user.name} (Admin)`;
+    badge.classList.remove('hidden');
+  }
+  document.getElementById('btn-portal-admin-logout').classList.remove('hidden');
+  applyAdminWorkspaceData(data);
+}
+
+function showAdminLoginBox(errMsg) {
+  adminState.user = null;
+  adminState.token = '';
+  try {
+    localStorage.removeItem(CONFIG.ADMIN_SESSION_KEY);
+  } catch (e) {}
+
+  document.getElementById('portal-admin-workspace').classList.add('hidden');
+  document.getElementById('portal-admin-login-box').classList.remove('hidden');
+  document.getElementById('portal-admin-user-badge').classList.add('hidden');
+  document.getElementById('btn-portal-admin-logout').classList.add('hidden');
+  const errEl = document.getElementById('portal-admin-login-error');
+  if (errMsg) {
+    errEl.textContent = errMsg;
+    errEl.classList.remove('hidden');
+  } else {
+    errEl.classList.add('hidden');
+  }
+}
+
+async function openPortalAdminModal() {
+  document.getElementById('portal-admin-modal').classList.remove('hidden');
+  loadPortalAdminFacultyList();
+
+  let savedToken = '';
+  try {
+    savedToken = localStorage.getItem(CONFIG.ADMIN_SESSION_KEY) || '';
+  } catch (e) {}
+
+  if (savedToken && !adminState.user) {
+    try {
+      const res = await callPortalAdminPost({ action: 'portal_resume', auth_token: savedToken });
+      if (res && res.success) {
+        showAdminWorkspace(res.user, res.sessionToken, res.data);
+        return;
+      }
+    } catch (e) {}
+    showAdminLoginBox('');
+  }
+}
+
+function closePortalAdminModal() {
+  document.getElementById('portal-admin-modal').classList.add('hidden');
+}
+
+function renderAdminAppsTable() {
+  const tbody = document.getElementById('admin-apps-tbody');
+  if (!tbody) return;
+  const sorted = [...adminState.apps].sort(
+    (a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999)
+  );
+
+  if (sorted.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="text-align:center;padding:18px;color:#64577a;">ยังไม่มีรายการระบบงาน</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted
+    .map((app) => {
+      const isVis = isTruthyFlag(app.is_visible);
+      const zone = getDisplayZone(app);
+      const zoneLabel =
+        zone === 'TOP_BAR'
+          ? '<span class="app-badge badge-restricted">TOP_BAR (ปุ่มด่วน)</span>'
+          : '<span class="app-badge badge-active">MAIN_GRID (การ์ด)</span>';
+      const visLabel = isVis
+        ? '<span style="color:#166534;font-weight:700;">แสดง</span>'
+        : '<span style="color:#b91c1c;">ซ่อน</span>';
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(app.app_id)}</strong></td>
+          <td style="text-align:center;">${escapeHtml(app.display_order)}</td>
+          <td>${zoneLabel}</td>
+          <td>
+            <div style="font-weight:700;">${escapeHtml(app.app_title)}</div>
+            <div style="font-size:0.78rem;color:#64577a;">หมวด: ${escapeHtml(app.category || '-')}</div>
+          </td>
+          <td><span class="app-badge badge-${escapeHtml((app.badge_type || 'active').toLowerCase())}">${escapeHtml(app.badge_text || '-')}</span></td>
+          <td style="text-align:center;">${visLabel}</td>
+          <td style="text-align:center;">
+            <button type="button" class="admin-btn-outline admin-btn-sm" onclick="openAdminAppEditor('${escapeJsStr(app.app_id)}')">แก้ไข</button>
+            <button type="button" class="admin-btn-danger admin-btn-sm" onclick="deleteAdminApp('${escapeJsStr(app.app_id)}')">ลบ</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+window.openAdminAppEditor = function (appId) {
+  const box = document.getElementById('admin-app-editor');
+  const existing = appId
+    ? adminState.apps.find((a) => String(a.app_id || '').toUpperCase() === String(appId).toUpperCase())
+    : null;
+
+  document.getElementById('admin-app-editor-title').textContent = existing
+    ? `แก้ไขระบบงาน ${existing.app_id}`
+    : 'เพิ่มระบบงาน / ปุ่มลัดใหม่';
+
+  if (existing) {
+    document.getElementById('edit-app-id').value = existing.app_id || '';
+    document.getElementById('edit-app-id').readOnly = true;
+    document.getElementById('edit-app-zone').value = getDisplayZone(existing);
+    document.getElementById('edit-app-order').value = parseFloat(existing.display_order) || 1;
+    document.getElementById('edit-app-title').value = existing.app_title || '';
+    document.getElementById('edit-app-category').value = existing.category || 'หลักสูตรและการเรียนการสอน';
+    document.getElementById('edit-app-desc').value = existing.description || '';
+    document.getElementById('edit-app-users').value = existing.target_users || '';
+    document.getElementById('edit-app-url').value = existing.app_url || '';
+    document.getElementById('edit-app-badge-text').value = existing.badge_text || 'เปิดใช้งาน';
+    document.getElementById('edit-app-badge-type').value = (existing.badge_type || 'active').toLowerCase();
+    document.getElementById('edit-app-icon').value = (existing.icon_name || 'default').toLowerCase();
+    document.getElementById('edit-app-visible').value = isTruthyFlag(existing.is_visible) ? 'TRUE' : 'FALSE';
+  } else {
+    const nextNum = adminState.apps.length + 1;
+    document.getElementById('edit-app-id').value = `APP0${nextNum}`;
+    document.getElementById('edit-app-id').readOnly = false;
+    document.getElementById('edit-app-zone').value = 'MAIN_GRID';
+    document.getElementById('edit-app-order').value = nextNum;
+    document.getElementById('edit-app-title').value = '';
+    document.getElementById('edit-app-category').value = 'หลักสูตรและการเรียนการสอน';
+    document.getElementById('edit-app-desc').value = '';
+    document.getElementById('edit-app-users').value = 'นักศึกษา และคณาจารย์';
+    document.getElementById('edit-app-url').value = '';
+    document.getElementById('edit-app-badge-text').value = 'เปิดใช้งาน';
+    document.getElementById('edit-app-badge-type').value = 'active';
+    document.getElementById('edit-app-icon').value = 'calendar';
+    document.getElementById('edit-app-visible').value = 'TRUE';
+  }
+
+  box.classList.remove('hidden');
+};
+
+window.deleteAdminApp = async function (appId) {
+  if (!confirm(`ต้องการลบรายการระบบงาน ${appId} ออกจากหน้า Portal Hub หรือไม่?`)) return;
+  try {
+    const res = await callPortalAdminPost({
+      action: 'portal_delete_app',
+      auth_token: adminState.token,
+      app_id: appId,
+    });
+    if (!res.success) {
+      if (res.expired) showAdminLoginBox(res.message);
+      else showPortalToast(res.message);
+      return;
+    }
+    applyAdminWorkspaceData(res.data);
+    showPortalToast(res.message);
+  } catch (err) {
+    showPortalToast('ลบไม่สำเร็จ: ' + err.message);
+  }
+};
+
+function populateAdminSettingsForm() {
+  const map = {};
+  (adminState.settings || []).forEach((r) => {
+    if (r.setting_key) map[r.setting_key.trim()] = r.setting_value || '';
+  });
+  document.getElementById('set-show-notice').value = isTruthyFlag(map.show_notice) ? 'TRUE' : 'FALSE';
+  document.getElementById('set-notice-text').value = map.notice_text || '';
+  document.getElementById('set-site-title').value = map.site_title || document.getElementById('site-title').textContent;
+  document.getElementById('set-dept-badge').value = map.dept_badge || document.getElementById('dept-badge').textContent;
+  document.getElementById('set-site-subtitle').value =
+    map.site_subtitle || document.getElementById('site-subtitle').textContent;
+  document.getElementById('set-footer-text').value =
+    map.footer_text || document.getElementById('footer-text').textContent;
+  document.getElementById('set-contact-info').value =
+    map.contact_info || document.getElementById('contact-info').textContent;
+}
+
+function renderAdminLinksTable() {
+  const tbody = document.getElementById('admin-links-tbody');
+  if (!tbody) return;
+  const sorted = [...adminState.externalLinks].sort(
+    (a, b) => (parseFloat(a.display_order) || 999) - (parseFloat(b.display_order) || 999)
+  );
+  if (sorted.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:18px;color:#64577a;">ยังไม่มีรายการลิงก์หน่วยงาน</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted
+    .map((item) => {
+      const isVis = isTruthyFlag(item.is_visible);
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.link_id)}</strong></td>
+          <td style="text-align:center;">${escapeHtml(item.display_order)}</td>
+          <td>
+            <div style="font-weight:700;">${escapeHtml(item.link_title)}</div>
+            <div style="font-size:0.78rem;color:#64577a;word-break:break-all;">${escapeHtml(item.link_url)}</div>
+          </td>
+          <td style="text-align:center;">${
+            isVis
+              ? '<span style="color:#166534;font-weight:700;">แสดง</span>'
+              : '<span style="color:#b91c1c;">ซ่อน</span>'
+          }</td>
+          <td style="text-align:center;">
+            <button type="button" class="admin-btn-outline admin-btn-sm" onclick="openAdminLinkEditor('${escapeJsStr(item.link_id)}')">แก้ไข</button>
+            <button type="button" class="admin-btn-danger admin-btn-sm" onclick="deleteAdminLink('${escapeJsStr(item.link_id)}')">ลบ</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+window.openAdminLinkEditor = function (linkId) {
+  const box = document.getElementById('admin-link-editor');
+  const existing = linkId
+    ? adminState.externalLinks.find((l) => String(l.link_id || '').toUpperCase() === String(linkId).toUpperCase())
+    : null;
+
+  document.getElementById('admin-link-editor-title').textContent = existing
+    ? `แก้ไขลิงก์หน่วยงาน ${existing.link_id}`
+    : 'เพิ่มลิงก์หน่วยงานภายนอกใหม่';
+
+  if (existing) {
+    document.getElementById('edit-link-id').value = existing.link_id || '';
+    document.getElementById('edit-link-id').readOnly = true;
+    document.getElementById('edit-link-order').value = parseFloat(existing.display_order) || 1;
+    document.getElementById('edit-link-visible').value = isTruthyFlag(existing.is_visible) ? 'TRUE' : 'FALSE';
+    document.getElementById('edit-link-title').value = existing.link_title || '';
+    document.getElementById('edit-link-url').value = existing.link_url || '';
+    document.getElementById('edit-link-tooltip').value = existing.tooltip || '';
+  } else {
+    const nextNum = adminState.externalLinks.length + 1;
+    document.getElementById('edit-link-id').value = `EXT0${nextNum}`;
+    document.getElementById('edit-link-id').readOnly = false;
+    document.getElementById('edit-link-order').value = nextNum;
+    document.getElementById('edit-link-visible').value = 'TRUE';
+    document.getElementById('edit-link-title').value = '';
+    document.getElementById('edit-link-url').value = '';
+    document.getElementById('edit-link-tooltip').value = '';
+  }
+  box.classList.remove('hidden');
+};
+
+window.deleteAdminLink = async function (linkId) {
+  if (!confirm(`ต้องการลบลิงก์หน่วยงาน ${linkId} หรือไม่?`)) return;
+  try {
+    const res = await callPortalAdminPost({
+      action: 'portal_delete_link',
+      auth_token: adminState.token,
+      link_id: linkId,
+    });
+    if (!res.success) {
+      if (res.expired) showAdminLoginBox(res.message);
+      else showPortalToast(res.message);
+      return;
+    }
+    applyAdminWorkspaceData(res.data);
+    showPortalToast(res.message);
+  } catch (err) {
+    showPortalToast('ลบไม่สำเร็จ: ' + err.message);
+  }
+};
+
+function setupPortalAdminEvents() {
+  const btnOpen = document.getElementById('btn-portal-admin');
+  if (btnOpen) btnOpen.addEventListener('click', openPortalAdminModal);
+
+  const btnClose = document.getElementById('btn-portal-admin-close');
+  if (btnClose) btnClose.addEventListener('click', closePortalAdminModal);
+
+  const btnLogout = document.getElementById('btn-portal-admin-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+      showAdminLoginBox('');
+      showPortalToast('ออกจากระบบจัดการ Portal แล้วครับ');
+    });
+  }
+
+  const btnLogin = document.getElementById('btn-portal-admin-login');
+  if (btnLogin) {
+    btnLogin.addEventListener('click', async () => {
+      const facId = document.getElementById('portal-admin-faculty').value;
+      const pass = document.getElementById('portal-admin-passcode').value.trim();
+      if (!facId || !pass) {
+        showAdminLoginBox('กรุณาเลือกชื่อผู้ดูแลระบบและกรอกรหัสผ่านครับ');
+        return;
+      }
+      btnLogin.disabled = true;
+      btnLogin.textContent = 'กำลังตรวจสอบสิทธิ์...';
+      try {
+        const res = await callPortalAdminPost({
+          action: 'portal_login',
+          faculty_id: facId,
+          passcode: pass,
+        });
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'เข้าสู่ระบบจัดการ Portal';
+        if (!res.success) {
+          showAdminLoginBox(res.message || 'เข้าสู่ระบบไม่สำเร็จ');
+          return;
+        }
+        document.getElementById('portal-admin-passcode').value = '';
+        showAdminWorkspace(res.user, res.sessionToken, res.data);
+        showPortalToast('เข้าสู่ระบบจัดการ Portal Hub สำเร็จ');
+      } catch (err) {
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'เข้าสู่ระบบจัดการ Portal';
+        showAdminLoginBox('ไม่สามารถเชื่อมต่อ API ได้ (กรุณาตรวจสอบว่าอัปเดตโค้ด GAS APP03 เป็นเวอร์ชันล่าสุดแล้ว)');
+      }
+    });
+  }
+
+  document.querySelectorAll('[data-admin-tab]').forEach((tabBtn) => {
+    tabBtn.addEventListener('click', () => {
+      const target = tabBtn.getAttribute('data-admin-tab');
+      document.querySelectorAll('[data-admin-tab]').forEach((b) => b.classList.toggle('active', b === tabBtn));
+      document.getElementById('admin-tab-apps').classList.toggle('hidden', target !== 'apps');
+      document.getElementById('admin-tab-settings').classList.toggle('hidden', target !== 'settings');
+      document.getElementById('admin-tab-links').classList.toggle('hidden', target !== 'links');
+    });
+  });
+
+  document.getElementById('btn-admin-add-app')?.addEventListener('click', () => window.openAdminAppEditor(''));
+  document.getElementById('btn-cancel-edit-app')?.addEventListener('click', () => {
+    document.getElementById('admin-app-editor').classList.add('hidden');
+  });
+
+  document.getElementById('btn-save-edit-app')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-edit-app');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+    try {
+      const appPayload = {
+        app_id: document.getElementById('edit-app-id').value.trim(),
+        display_zone: document.getElementById('edit-app-zone').value,
+        display_order: document.getElementById('edit-app-order').value,
+        app_title: document.getElementById('edit-app-title').value.trim(),
+        category: document.getElementById('edit-app-category').value.trim(),
+        description: document.getElementById('edit-app-desc').value.trim(),
+        target_users: document.getElementById('edit-app-users').value.trim(),
+        app_url: document.getElementById('edit-app-url').value.trim(),
+        badge_text: document.getElementById('edit-app-badge-text').value.trim(),
+        badge_type: document.getElementById('edit-app-badge-type').value,
+        icon_name: document.getElementById('edit-app-icon').value,
+        is_visible: document.getElementById('edit-app-visible').value,
+      };
+      const res = await callPortalAdminPost({
+        action: 'portal_save_app',
+        auth_token: adminState.token,
+        app: appPayload,
+      });
+      btn.disabled = false;
+      btn.textContent = 'บันทึกระบบงาน';
+      if (!res.success) {
+        if (res.expired) showAdminLoginBox(res.message);
+        else showPortalToast(res.message);
+        return;
+      }
+      document.getElementById('admin-app-editor').classList.add('hidden');
+      applyAdminWorkspaceData(res.data);
+      showPortalToast(res.message);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกระบบงาน';
+      showPortalToast('บันทึกไม่สำเร็จ: ' + err.message);
+    }
+  });
+
+  document.getElementById('btn-save-portal-settings')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-portal-settings');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+    try {
+      const settingsPayload = {
+        show_notice: document.getElementById('set-show-notice').value,
+        notice_text: document.getElementById('set-notice-text').value.trim(),
+        site_title: document.getElementById('set-site-title').value.trim(),
+        dept_badge: document.getElementById('set-dept-badge').value.trim(),
+        site_subtitle: document.getElementById('set-site-subtitle').value.trim(),
+        footer_text: document.getElementById('set-footer-text').value.trim(),
+        contact_info: document.getElementById('set-contact-info').value.trim(),
+      };
+      const res = await callPortalAdminPost({
+        action: 'portal_save_settings',
+        auth_token: adminState.token,
+        settings: settingsPayload,
+      });
+      btn.disabled = false;
+      btn.textContent = 'บันทึกการตั้งค่าหน้าเว็บ';
+      if (!res.success) {
+        if (res.expired) showAdminLoginBox(res.message);
+        else showPortalToast(res.message);
+        return;
+      }
+      applyAdminWorkspaceData(res.data);
+      showPortalToast(res.message);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกการตั้งค่าหน้าเว็บ';
+      showPortalToast('บันทึกไม่สำเร็จ: ' + err.message);
+    }
+  });
+
+  document.getElementById('btn-admin-add-link')?.addEventListener('click', () => window.openAdminLinkEditor(''));
+  document.getElementById('btn-cancel-edit-link')?.addEventListener('click', () => {
+    document.getElementById('admin-link-editor').classList.add('hidden');
+  });
+
+  document.getElementById('btn-save-edit-link')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-edit-link');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+    try {
+      const linkPayload = {
+        link_id: document.getElementById('edit-link-id').value.trim(),
+        display_order: document.getElementById('edit-link-order').value,
+        is_visible: document.getElementById('edit-link-visible').value,
+        link_title: document.getElementById('edit-link-title').value.trim(),
+        link_url: document.getElementById('edit-link-url').value.trim(),
+        tooltip: document.getElementById('edit-link-tooltip').value.trim(),
+      };
+      const res = await callPortalAdminPost({
+        action: 'portal_save_link',
+        auth_token: adminState.token,
+        link: linkPayload,
+      });
+      btn.disabled = false;
+      btn.textContent = 'บันทึกลิงก์';
+      if (!res.success) {
+        if (res.expired) showAdminLoginBox(res.message);
+        else showPortalToast(res.message);
+        return;
+      }
+      document.getElementById('admin-link-editor').classList.add('hidden');
+      applyAdminWorkspaceData(res.data);
+      showPortalToast(res.message);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'บันทึกลิงก์';
+      showPortalToast('บันทึกไม่สำเร็จ: ' + err.message);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPortal();
+  setupPortalAdminEvents();
+});

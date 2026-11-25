@@ -37,7 +37,7 @@
             </div>
           </div>
 
-          <!-- ปุ่มจัดการรหัสผ่านอาจารย์มุมขวาบน -->
+          <!-- ปุ่มจัดการรหัสผ่านอาจารย์และปุ่มจัดการ Portal (Admin) มุมขวาบน -->
           <div class="hero-actions">
             <a
               id="btn-passcode-manager"
@@ -53,6 +53,18 @@
               </svg>
               <span>จัดการรหัสผ่าน</span>
             </a>
+            <button
+              id="btn-portal-admin"
+              type="button"
+              class="passcode-btn admin-portal-btn"
+              title="สำหรับผู้ดูแลระบบ (Admin) จัดการการ์ดระบบงาน แถบประกาศ และลิงก์หน่วยงานโดยไม่ต้องแก้ Google Sheet"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>จัดการ Portal (Admin)</span>
+            </button>
           </div>
         </div>
 
@@ -109,6 +121,279 @@
       </div>
     </footer>
   </div>
+
+  <!-- หน้าต่างจัดการข้อมูล Portal Hub สำหรับผู้ดูแลระบบ (Admin Modal) -->
+  <div id="portal-admin-modal" class="admin-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="portal-admin-title">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div>
+          <span class="dept-badge" style="margin-bottom:4px;">เชื่อมต่อรหัสผ่านกลาง • ไม่ต้องแก้ใน Google Sheet</span>
+          <h2 id="portal-admin-title" class="admin-modal-title">จัดการข้อมูลหน้า Portal Hub (Admin)</h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="portal-admin-user-badge" class="app-badge badge-active hidden"></span>
+          <button id="btn-portal-admin-logout" type="button" class="admin-btn-outline admin-btn-sm hidden">ออกจากระบบ</button>
+          <button id="btn-portal-admin-close" type="button" class="admin-btn-outline admin-btn-sm">ปิดหน้าต่าง ✕</button>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 1: ฟอร์มเข้าสู่ระบบ Admin -->
+      <div id="portal-admin-login-box" class="admin-login-box">
+        <p class="admin-muted" style="margin-bottom:14px;">
+          เข้าสู่ระบบด้วยชื่ออาจารย์ผู้ดูแลระบบและรหัสผ่านส่วนตัวชุดเดียวกับระบบกลางของภาควิชา
+        </p>
+        <div class="admin-form-group">
+          <label for="portal-admin-faculty">เลือกชื่อผู้ดูแลระบบ (Admin)</label>
+          <select id="portal-admin-faculty" class="admin-input">
+            <option value="">-- กำลังโหลดรายชื่อผู้ดูแลระบบ... --</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="portal-admin-passcode">รหัสผ่าน (Passcode)</label>
+          <input type="password" id="portal-admin-passcode" class="admin-input" placeholder="กรอกรหัสผ่านส่วนตัว" />
+        </div>
+        <button id="btn-portal-admin-login" type="button" class="admin-btn-primary" style="width:100%;">เข้าสู่ระบบจัดการ Portal</button>
+        <div id="portal-admin-login-error" class="admin-error-box hidden"></div>
+      </div>
+
+      <!-- ส่วนที่ 2: พื้นที่จัดการข้อมูลหลังล็อกอิน -->
+      <div id="portal-admin-workspace" class="hidden">
+        <div class="admin-tabs">
+          <button type="button" class="admin-tab active" data-admin-tab="apps">1. การ์ดระบบงาน &amp; ปุ่มเมนูลัด</button>
+          <button type="button" class="admin-tab" data-admin-tab="settings">2. แถบประกาศด่วน &amp; ข้อความหน้าเว็บ</button>
+          <button type="button" class="admin-tab" data-admin-tab="links">3. ลิงก์หน่วยงานภายนอก</button>
+        </div>
+
+        <!-- แท็บ 1: จัดการการ์ดระบบงาน (Portal_Apps) -->
+        <div id="admin-tab-apps" class="admin-tab-pane">
+          <div class="admin-pane-toolbar">
+            <span class="admin-muted">จัดการการ์ดระบบงานหลัก (MAIN_GRID) และปุ่มบริการด่วนแถบบน (TOP_BAR)</span>
+            <button id="btn-admin-add-app" type="button" class="admin-btn-primary admin-btn-sm">+ เพิ่มระบบงาน / ปุ่มลัดใหม่</button>
+          </div>
+
+          <!-- ฟอร์มเพิ่ม/แก้ไขระบบงาน -->
+          <div id="admin-app-editor" class="admin-editor-box hidden">
+            <h3 id="admin-app-editor-title" style="font-size:1rem;margin-bottom:10px;">เพิ่ม/แก้ไขระบบงาน</h3>
+            <div class="admin-grid-3">
+              <div class="admin-form-group">
+                <label for="edit-app-id">รหัสระบบ (เช่น APP01, APP08)</label>
+                <input type="text" id="edit-app-id" class="admin-input" placeholder="APP08" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-zone">ตำแหน่งที่แสดงบนหน้า Portal</label>
+                <select id="edit-app-zone" class="admin-input">
+                  <option value="MAIN_GRID">การ์ดระบบงานหลัก (MAIN_GRID)</option>
+                  <option value="TOP_BAR">แถบบริการด่วนด้านบน (TOP_BAR)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-order">ลำดับการแสดงผล (ตัวเลข)</label>
+                <input type="number" id="edit-app-order" class="admin-input" value="1" min="1" max="99" />
+              </div>
+            </div>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="edit-app-title">ชื่อระบบงาน / ชื่อปุ่ม</label>
+                <input type="text" id="edit-app-title" class="admin-input" placeholder="เช่น ระบบวางแผนการลงทะเบียนเรียน" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-category">หมวดหมู่ระบบงาน</label>
+                <input type="text" id="edit-app-category" class="admin-input" list="portal-category-list" placeholder="เช่น หลักสูตรและการเรียนการสอน" />
+                <datalist id="portal-category-list">
+                  <option value="หลักสูตรและการเรียนการสอน"></option>
+                  <option value="บริหารจัดการหลักสูตร"></option>
+                  <option value="บริการนักศึกษาและคณาจารย์"></option>
+                </datalist>
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label for="edit-app-desc">คำอธิบายระบบงาน</label>
+              <input type="text" id="edit-app-desc" class="admin-input" placeholder="คำอธิบายสั้นๆ ที่แสดงบนการ์ด" />
+            </div>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="edit-app-users">กลุ่มผู้ใช้งานเป้าหมาย</label>
+                <input type="text" id="edit-app-users" class="admin-input" placeholder="เช่น นักศึกษา และอาจารย์ที่ปรึกษา" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-url">ลิงก์เข้าสู่ระบบงาน (URL)</label>
+                <input type="url" id="edit-app-url" class="admin-input" placeholder="https://..." />
+              </div>
+            </div>
+            <div class="admin-grid-4">
+              <div class="admin-form-group">
+                <label for="edit-app-badge-text">ข้อความป้ายสถานะ</label>
+                <input type="text" id="edit-app-badge-text" class="admin-input" value="เปิดใช้งาน" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-badge-type">สีป้ายสถานะ</label>
+                <select id="edit-app-badge-type" class="admin-input">
+                  <option value="active">สีเขียว (เปิดใช้งานปกติ)</option>
+                  <option value="restricted">สีเหลือง (เฉพาะอาจารย์/จำกัดสิทธิ์)</option>
+                  <option value="coming_soon">สีเทา (กำลังพัฒนา / ปิดปุ่มกด)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-icon">ไอคอน</label>
+                <select id="edit-app-icon" class="admin-input">
+                  <option value="calendar">ปฏิทิน (calendar)</option>
+                  <option value="book">หนังสือ (book)</option>
+                  <option value="users">ผู้ใช้งาน/อาจารย์ (users)</option>
+                  <option value="clipboard">แฟ้มคำร้อง (clipboard)</option>
+                  <option value="megaphone">โทรโข่งประกาศ (megaphone)</option>
+                  <option value="chart">กราฟสถิติ (chart)</option>
+                  <option value="folder">โฟลเดอร์ (folder)</option>
+                  <option value="sparkles">ดาวประกาย (sparkles)</option>
+                  <option value="bell">กระดิ่ง (bell)</option>
+                  <option value="link">ลิงก์ (link)</option>
+                  <option value="default">ตาราง 4 ช่อง (default)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-app-visible">การแสดงผลบนหน้าเว็บ</label>
+                <select id="edit-app-visible" class="admin-input">
+                  <option value="TRUE">แสดงบนหน้าเว็บ (TRUE)</option>
+                  <option value="FALSE">ซ่อนชั่วคราว (FALSE)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+              <button id="btn-cancel-edit-app" type="button" class="admin-btn-outline admin-btn-sm">ยกเลิก</button>
+              <button id="btn-save-edit-app" type="button" class="admin-btn-primary admin-btn-sm">บันทึกระบบงาน</button>
+            </div>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width:70px;">รหัส</th>
+                  <th style="width:65px;text-align:center;">ลำดับ</th>
+                  <th style="width:115px;">ตำแหน่ง</th>
+                  <th>ชื่อระบบงาน &amp; หมวดหมู่</th>
+                  <th style="width:110px;">สถานะป้าย</th>
+                  <th style="width:85px;text-align:center;">แสดงผล</th>
+                  <th style="width:130px;text-align:center;">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="admin-apps-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- แท็บ 2: จัดการแถบประกาศและข้อความหน้าเว็บ (Portal_Settings) -->
+        <div id="admin-tab-settings" class="admin-tab-pane hidden">
+          <div class="admin-editor-box" style="display:block;">
+            <h3 style="font-size:1rem;margin-bottom:12px;">ตั้งค่าแถบประกาศด่วนด้านบนสุด &amp; ข้อความหน้าเว็บ</h3>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="set-show-notice">แสดงแถบประกาศด้านบนสุดของเว็บหรือไม่</label>
+                <select id="set-show-notice" class="admin-input">
+                  <option value="TRUE">แสดงแถบประกาศ (เปิด)</option>
+                  <option value="FALSE">ซ่อนแถบประกาศ (ปิด)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="set-notice-text">ข้อความในแถบประกาศด้านบนสุด</label>
+                <input type="text" id="set-notice-text" class="admin-input" placeholder="เช่น 📢 เปิดระบบวางแผนการเรียนหลักสูตร 2564 และ 2569 แล้ว" />
+              </div>
+            </div>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="set-site-title">ชื่อหัวข้อหลักของหน้า Portal (Site Title)</label>
+                <input type="text" id="set-site-title" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label for="set-dept-badge">ป้ายชื่อหน่วยงานเหนือหัวข้อหลัก</label>
+                <input type="text" id="set-dept-badge" class="admin-input" />
+              </div>
+            </div>
+            <div class="admin-form-group">
+              <label for="set-site-subtitle">คำอธิบายย่อยใต้หัวข้อหลัก (Subtitle)</label>
+              <input type="text" id="set-site-subtitle" class="admin-input" />
+            </div>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="set-footer-text">ข้อความลิขสิทธิ์ส่วนท้าย (Footer)</label>
+                <input type="text" id="set-footer-text" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label for="set-contact-info">ข้อมูลติดต่อผู้ดูแลระบบส่วนท้าย</label>
+                <input type="text" id="set-contact-info" class="admin-input" />
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+              <button id="btn-save-portal-settings" type="button" class="admin-btn-primary">บันทึกการตั้งค่าหน้าเว็บ</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- แท็บ 3: จัดการลิงก์หน่วยงานภายนอก (External_Links) -->
+        <div id="admin-tab-links" class="admin-tab-pane hidden">
+          <div class="admin-pane-toolbar">
+            <span class="admin-muted">จัดการปุ่มลิงก์หน่วยงานที่เกี่ยวข้องด้านล่างสุดของหน้า Portal</span>
+            <button id="btn-admin-add-link" type="button" class="admin-btn-primary admin-btn-sm">+ เพิ่มลิงก์หน่วยงานใหม่</button>
+          </div>
+
+          <div id="admin-link-editor" class="admin-editor-box hidden">
+            <h3 id="admin-link-editor-title" style="font-size:1rem;margin-bottom:10px;">เพิ่ม/แก้ไขลิงก์หน่วยงานภายนอก</h3>
+            <div class="admin-grid-4">
+              <div class="admin-form-group">
+                <label for="edit-link-id">รหัสลิงก์ (เช่น EXT01)</label>
+                <input type="text" id="edit-link-id" class="admin-input" placeholder="EXT06" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-link-order">ลำดับแสดงผล</label>
+                <input type="number" id="edit-link-order" class="admin-input" value="1" min="1" max="99" />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-link-visible">การแสดงผล</label>
+                <select id="edit-link-visible" class="admin-input">
+                  <option value="TRUE">แสดง (TRUE)</option>
+                  <option value="FALSE">ซ่อน (FALSE)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-link-title">ชื่อปุ่มลิงก์</label>
+                <input type="text" id="edit-link-title" class="admin-input" placeholder="เช่น สำนักทะเบียน มช." />
+              </div>
+            </div>
+            <div class="admin-grid-2">
+              <div class="admin-form-group">
+                <label for="edit-link-url">ลิงก์เว็บไซต์ (URL)</label>
+                <input type="url" id="edit-link-url" class="admin-input" placeholder="https://..." />
+              </div>
+              <div class="admin-form-group">
+                <label for="edit-link-tooltip">คำอธิบายเมื่อชี้เมาส์ (Tooltip)</label>
+                <input type="text" id="edit-link-tooltip" class="admin-input" placeholder="คำอธิบายเพิ่มเติม" />
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+              <button id="btn-cancel-edit-link" type="button" class="admin-btn-outline admin-btn-sm">ยกเลิก</button>
+              <button id="btn-save-edit-link" type="button" class="admin-btn-primary admin-btn-sm">บันทึกลิงก์</button>
+            </div>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width:80px;">รหัส</th>
+                  <th style="width:70px;text-align:center;">ลำดับ</th>
+                  <th>ชื่อปุ่มลิงก์ &amp; URL</th>
+                  <th style="width:90px;text-align:center;">แสดงผล</th>
+                  <th style="width:130px;text-align:center;">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="admin-links-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="portal-toast" class="portal-toast hidden"></div>
 
   <script src="app.js"></script>
 </body>
