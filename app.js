@@ -27,6 +27,8 @@ const CONFIG = {
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
   ADMIN_SESSION_KEY: 'ic2569_portal_admin_session_token',
   ADMIN_API_URL:
+    'https://script.google.com/macros/s/AKfycbwswqLG3Zm0T1B2YZbw9Or6zWNr1bfxqGMk38Fw7nbv2RjNMlhOlExMEJbYyKYxcAlD/exec',
+  ADMIN_API_FALLBACK_URL:
     'https://script.google.com/macros/s/AKfycbxNtprN88p1cucvKF09WW6GwM3Is2VHOI0b7hzyvvWKIeZAqnzoJWzTN7drZ1naJlQU/exec',
   LEGACY_NAVY_OVERLAY: '#0f2942',
   LEGACY_NAVY_PRIMARY: '#1e3a5f',
@@ -535,7 +537,14 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
   rawPortalApps = parsedApps;
   rawExternalLinks = extLinksRows || [];
 
-  // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) ไปผูกกับปุ่มมุมขวาบนอัตโนมัติ
+  // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) และระบบจัดการโหลดสอน/API (APP03) อัตโนมัติ
+  const app03Entry = parsedApps.find(
+    (app) => (app.app_id || '').trim().toUpperCase() === 'APP03'
+  );
+  if (app03Entry && isValidHttpUrl(app03Entry.app_url)) {
+    CONFIG.ADMIN_API_URL = app03Entry.app_url.trim();
+  }
+
   const passcodeApp = parsedApps.find(
     (app) => (app.app_id || '').trim().toUpperCase() === 'APP04'
   );
@@ -644,39 +653,59 @@ function showPortalToast(msg) {
   showPortalToast._timer = setTimeout(() => el.classList.add('hidden'), 3400);
 }
 
+function getCandidateAdminApiUrls() {
+  const urls = [CONFIG.ADMIN_API_URL, CONFIG.ADMIN_API_FALLBACK_URL].filter(
+    (u, idx, arr) => isValidHttpUrl(u) && arr.indexOf(u) === idx
+  );
+  return urls;
+}
+
 async function callPortalAdminPost(payload) {
-  const res = await fetch(CONFIG.ADMIN_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const urls = getCandidateAdminApiUrls();
+  let lastErr = null;
+  for (const apiUrl of urls) {
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      CONFIG.ADMIN_API_URL = apiUrl;
+      return json;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('ไม่สามารถเชื่อมต่อ GAS API ได้');
 }
 
 async function loadPortalAdminFacultyList() {
   if (adminState.facultyLoaded) return;
   const sel = document.getElementById('portal-admin-faculty');
   if (!sel) return;
-  try {
-    const res = await fetch(`${CONFIG.ADMIN_API_URL}?action=portal_faculty`, { cache: 'no-store' });
-    const data = await res.json();
-    if (data && data.success && Array.isArray(data.faculty)) {
-      sel.innerHTML =
-        '<option value="">-- เลือกชื่ออาจารย์ผู้ดูแลระบบ --</option>' +
-        data.faculty
-          .map(
-            (f) =>
-              `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
-          )
-          .join('');
-      adminState.facultyLoaded = true;
-    } else {
-      sel.innerHTML = '<option value="">ไม่สามารถโหลดรายชื่อได้ (โปรดอัปเดตเวอร์ชัน GAS APP03)</option>';
-    }
-  } catch (err) {
-    sel.innerHTML = '<option value="">เชื่อมต่อระบบรหัสผ่านกลางไม่สำเร็จ</option>';
+  const urls = getCandidateAdminApiUrls();
+  for (const apiUrl of urls) {
+    try {
+      const res = await fetch(`${apiUrl}?action=portal_faculty`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.faculty)) {
+        CONFIG.ADMIN_API_URL = apiUrl;
+        sel.innerHTML =
+          '<option value="">-- เลือกชื่ออาจารย์ผู้ดูแลระบบ --</option>' +
+          data.faculty
+            .map(
+              (f) =>
+                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
+            )
+            .join('');
+        adminState.facultyLoaded = true;
+        return;
+      }
+    } catch (err) {}
   }
+  sel.innerHTML = '<option value="">รออัปเดตโค้ด GAS APP03 เป็นเวอร์ชันใหม่ (Manage Deployments > New version)</option>';
 }
 
 function applyAdminWorkspaceData(data) {
