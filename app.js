@@ -25,6 +25,8 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbxdSjpQ5uw1Q0dFq4X-bJVcAf2covmn4ZjE4x3FGpuBQDglbEs2cNe8a2yWpBMH5ngR/exec',
     APP07:
       'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
+    APP08:
+      'https://script.google.com/macros/s/AKfycbzbSjPT0MugBN6-3fmSIjg4T6S6gUQVPuLcvTHCej8fNC2hs2ocBHpZFZxx8_9QQR4/exec',
   },
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
   USER_THEME_PREF_KEY: 'ic2569_portal_user_theme_pref_v1',
@@ -823,10 +825,10 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
       app_title: 'ระบบคลังและเบิก-จ่ายสารเคมีและวัสดุอุปกรณ์วิทยาศาสตร์',
       description: 'สืบค้นรายการสารเคมี เครื่องแก้ว และวัสดุวิทยาศาสตร์ในห้องปฏิบัติการ ยื่นคำขอเบิก-จ่ายหรือยืม-คืนอุปกรณ์ และติดตามสถานะคงเหลือ',
       target_users: 'นักศึกษา อาจารย์ และเจ้าหน้าที่ห้องปฏิบัติการ',
-      badge_text: 'อยู่ระหว่างพัฒนา',
-      badge_type: 'coming_soon',
+      badge_text: 'เปิดใช้งาน',
+      badge_type: 'active',
       icon_name: 'flask',
-      app_url: '',
+      app_url: 'https://script.google.com/macros/s/AKfycbzbSjPT0MugBN6-3fmSIjg4T6S6gUQVPuLcvTHCej8fNC2hs2ocBHpZFZxx8_9QQR4/exec',
       is_visible: 'TRUE',
       display_zone: 'MAIN_GRID',
     },
