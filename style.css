@@ -32,6 +32,12 @@
   padding: 0;
 }
 
+html {
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html, body {
   min-height: 100%;
   font-family: 'Sarabun', sans-serif;
@@ -39,6 +45,7 @@ html, body {
   background-color: #f6f1fc;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn, .external-link-btn, .top-bar-label, .quick-card-title {
@@ -93,9 +100,9 @@ h1, h2, h3, .dept-badge, .filter-pill, .app-btn, .app-badge, .passcode-btn, .ext
 
 .container {
   width: 100%;
-  max-width: 1120px;
+  max-width: min(1440px, 96vw);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 clamp(14px, 2vw, 28px);
 }
 
 /* =========================================================
