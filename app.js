@@ -69,6 +69,8 @@ const ICONS = {
   megaphone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>`,
   bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
   clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`,
+  flask: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg>`,
+  microscope: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h8"></path><path d="M3 22h18"></path><path d="M14 22a7 7 0 1 0 0-14h-1"></path><path d="M9 14h2"></path><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"></path><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"></path></svg>`,
   link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
   default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>`,
 };
@@ -642,7 +644,7 @@ function renderApps() {
         <section class="category-section ${activeThemeMode === 'hybrid' ? 'hybrid-panel-box' : ''}">
           <div class="${activeThemeMode === 'hybrid' ? 'hybrid-panel-header' : ''}">
             <h2 class="category-heading">${escapeHtml(categoryName)}</h2>
-            ${activeThemeMode === 'hybrid' ? `<span class="hybrid-panel-count">หมวดงานหลักสูตร (${apps.length} ระบบ)</span>` : ''}
+            ${activeThemeMode === 'hybrid' ? `<span class="hybrid-panel-count">หมวดงานภาควิชา (${apps.length} ระบบ)</span>` : ''}
           </div>
           <div class="apps-grid ${countClass}" data-app-count="${apps.length}">
             ${apps
@@ -807,6 +809,43 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
 
   rawPortalApps = parsedApps;
   rawExternalLinks = extLinksRows || [];
+
+  // เสริมรายการมาตรฐาน APP08 และ APP09 (หมวดห้องปฏิบัติการและเครื่องมือวิเคราะห์) กรณีที่ Google CSV Cache ยังไม่อัปเดต
+  const defaultUpcomingLabApps = [
+    {
+      app_id: 'APP08',
+      display_order: '8',
+      category: 'ห้องปฏิบัติการและเครื่องมือวิเคราะห์',
+      app_title: 'ระบบคลังและเบิก-จ่ายสารเคมีและวัสดุอุปกรณ์วิทยาศาสตร์',
+      description: 'สืบค้นรายการสารเคมี เครื่องแก้ว และวัสดุวิทยาศาสตร์ในห้องปฏิบัติการ ยื่นคำขอเบิก-จ่ายหรือยืม-คืนอุปกรณ์ และติดตามสถานะคงเหลือ',
+      target_users: 'นักศึกษา อาจารย์ และเจ้าหน้าที่ห้องปฏิบัติการ',
+      badge_text: 'อยู่ระหว่างพัฒนา',
+      badge_type: 'coming_soon',
+      icon_name: 'flask',
+      app_url: '',
+      is_visible: 'TRUE',
+      display_zone: 'MAIN_GRID',
+    },
+    {
+      app_id: 'APP09',
+      display_order: '9',
+      category: 'ห้องปฏิบัติการและเครื่องมือวิเคราะห์',
+      app_title: 'ระบบจองเวลาใช้บริการและเครื่องมือวิเคราะห์',
+      description: 'ตรวจสอบตารางคิวและสถานะความพร้อมของเครื่องมือวิเคราะห์ประจำภาควิชา จองช่วงเวลาเข้าใช้งาน และบันทึกประวัติการใช้เครื่องมือ',
+      target_users: 'นักศึกษา อาจารย์ และเจ้าหน้าที่วิทยาศาสตร์',
+      badge_text: 'อยู่ระหว่างพัฒนา',
+      badge_type: 'coming_soon',
+      icon_name: 'microscope',
+      app_url: '',
+      is_visible: 'TRUE',
+      display_zone: 'MAIN_GRID',
+    },
+  ];
+  defaultUpcomingLabApps.forEach((defApp) => {
+    if (!parsedApps.some((x) => (x.app_id || '').trim().toUpperCase() === defApp.app_id)) {
+      parsedApps.push(defApp);
+    }
+  });
 
   // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) และระบบจัดการโหลดสอน/API (APP03) อัตโนมัติ
   const app03Entry = parsedApps.find(
