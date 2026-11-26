@@ -565,6 +565,7 @@ function renderApps() {
 
   let html = '';
   let seqIndex = 1;
+  const isAdminLoggedIn = !!(adminState && adminState.user);
   grouped.forEach((apps, categoryName) => {
     if (activeThemeMode === 'hybrid' && activeLayoutMode === 'table') {
       html += `
@@ -577,7 +578,7 @@ function renderApps() {
             <table class="hybrid-directory-table">
               <thead>
                 <tr>
-                  <th style="width:88px;text-align:center;">รหัสระบบ</th>
+                  <th style="width:72px;text-align:center;">${isAdminLoggedIn ? 'รหัสระบบ' : 'ลำดับ'}</th>
                   <th style="width:270px;">ชื่อระบบสารสนเทศ</th>
                   <th>รายละเอียดและการใช้งาน</th>
                   <th style="width:170px;">กลุ่มผู้ใช้งาน</th>
@@ -601,7 +602,10 @@ function renderApps() {
                           ? disabledText
                           : 'รอระบุลิงก์ในฐานข้อมูล'
                       : openText;
-                    const codeTag = escapeHtml(app.app_id || `SYS0${seqIndex++}`);
+                    const rowOrderNum = seqIndex++;
+                    const codeTag = isAdminLoggedIn
+                      ? escapeHtml(app.app_id || `#${rowOrderNum}`)
+                      : `${rowOrderNum}`;
 
                     return `
                       <tr class="${isDisabled ? 'is-disabled-row' : ''}">
@@ -670,7 +674,7 @@ function renderApps() {
                     <div class="card-top">
                       <div style="display:flex;align-items:center;gap:10px;">
                         <div class="app-icon-wrap" aria-hidden="true">${iconSvg}</div>
-                        ${activeThemeMode === 'hybrid' ? `<span class="hybrid-code-badge">${codeTag}</span>` : ''}
+                        ${isAdminLoggedIn && activeThemeMode === 'hybrid' ? `<span class="hybrid-code-badge">${codeTag}</span>` : ''}
                       </div>
                       ${
                         badgeLabel
