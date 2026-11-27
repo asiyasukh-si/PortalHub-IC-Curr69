@@ -2027,6 +2027,12 @@ function getApp10ExecUrl() {
   return CONFIG.APP10_API_URL || CONFIG.FALLBACK_APP_URLS.APP10;
 }
 
+function stripFacultyTitlePrefix(rawName) {
+  return String(rawName || '')
+    .replace(/^(ศ\.ดร\.|รศ\.ดร\.|ผศ\.ดร\.|อ\.ดร\.|ศ\.|รศ\.|ผศ\.|อ\.|ดร\.|เจ้าหน้าที่)\s*/g, '')
+    .trim();
+}
+
 async function loadFacultyLoginAccounts() {
   if (facultyAuthState.accountsLoaded && facultyAuthState.accounts.length > 0) return;
   const sel = document.getElementById('faculty-login-select');
@@ -2044,7 +2050,7 @@ async function loadFacultyLoginAccounts() {
         facultyAuthState.accounts
           .map(
             (acc) =>
-              `<option value="${escapeHtml(acc.id)}">${escapeHtml(acc.displayName || acc.name)}</option>`
+              `<option value="${escapeHtml(acc.id)}">${escapeHtml(stripFacultyTitlePrefix(acc.name || acc.displayName))}</option>`
           )
           .join('');
       return;
@@ -2067,7 +2073,7 @@ async function loadFacultyLoginAccounts() {
           data.faculty
             .map(
               (f) =>
-                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`
+                `<option value="${escapeHtml(f.id)}">${escapeHtml(stripFacultyTitlePrefix(f.name))}</option>`
             )
             .join('');
         return;
@@ -2091,7 +2097,7 @@ function updateFacultyHeaderButtonUI() {
     return;
   }
 
-  const displayName = facultyAuthState.user.displayName || facultyAuthState.user.name || 'อาจารย์';
+  const displayName = stripFacultyTitlePrefix(facultyAuthState.user.name || facultyAuthState.user.displayName || 'อาจารย์');
   if (labelEl) labelEl.textContent = displayName;
   if (nameEl) nameEl.textContent = `👤 ${displayName}`;
   if (formBox) formBox.classList.add('hidden');
