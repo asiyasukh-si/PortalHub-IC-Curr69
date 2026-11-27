@@ -27,7 +27,12 @@ const CONFIG = {
       'https://script.google.com/macros/s/AKfycbyJe-6iZZ7BBZKwEE59XAUsJYRwPyFJ0KEJXFHvFqY9H1qB0akGjjrzbfaYrfeYN0SE5Q/exec',
     APP08:
       'https://script.google.com/macros/s/AKfycbzbSjPT0MugBN6-3fmSIjg4T6S6gUQVPuLcvTHCej8fNC2hs2ocBHpZFZxx8_9QQR4/exec',
+    APP10:
+      'https://script.google.com/macros/s/AKfycbzWNaHhLod7SUm6sq23Aub34z3AJk5Jsh2yNH6oxr-r82Br8qcmmDHmr-wyerJEqnr3FA/exec',
   },
+  APP10_API_URL:
+    'https://script.google.com/macros/s/AKfycbzWNaHhLod7SUm6sq23Aub34z3AJk5Jsh2yNH6oxr-r82Br8qcmmDHmr-wyerJEqnr3FA/exec',
+  FACULTY_SESSION_KEY: 'ic2569_portal_faculty_session_v1',
   CACHE_KEY: 'ic2569_portal_hub_cache_v1',
   USER_THEME_PREF_KEY: 'ic2569_portal_user_theme_pref_v1',
   ADMIN_OVERRIDE_KEY: 'ic2569_portal_admin_override_v1',
@@ -816,7 +821,7 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
   rawPortalApps = parsedApps;
   rawExternalLinks = extLinksRows || [];
 
-  // เสริมรายการมาตรฐาน APP08 และ APP09 (หมวดห้องปฏิบัติการและเครื่องมือวิเคราะห์) กรณีที่ Google CSV Cache ยังไม่อัปเดต
+  // เสริมรายการมาตรฐาน APP08, APP09 (หมวดห้องปฏิบัติการฯ) และ APP10 (โซนบริการด่วน TOP_BAR) กรณีที่ Google CSV Cache ยังไม่อัปเดต
   const defaultUpcomingLabApps = [
     {
       app_id: 'APP08',
@@ -846,12 +851,44 @@ function applyPortalObjects(settingsRows, appsRows, extLinksRows) {
       is_visible: 'TRUE',
       display_zone: 'MAIN_GRID',
     },
+    {
+      app_id: 'APP10',
+      display_order: '10',
+      category: 'บริหารจัดการหลักสูตร',
+      app_title: 'ระบบจองห้องเรียนและห้องประชุม',
+      description: 'ตรวจสอบห้องว่าง จองห้องเรียนหรือห้องประชุม และติดตามสถานะคำร้องออนไลน์',
+      target_users: 'นักศึกษา อาจารย์ และเจ้าหน้าที่ภาควิชา',
+      badge_text: 'เปิดใช้งาน',
+      badge_type: 'active',
+      icon_name: 'calendar',
+      app_url: 'https://script.google.com/macros/s/AKfycbzWNaHhLod7SUm6sq23Aub34z3AJk5Jsh2yNH6oxr-r82Br8qcmmDHmr-wyerJEqnr3FA/exec',
+      is_visible: 'TRUE',
+      display_zone: 'TOP_BAR',
+    },
   ];
   defaultUpcomingLabApps.forEach((defApp) => {
-    if (!parsedApps.some((x) => (x.app_id || '').trim().toUpperCase() === defApp.app_id)) {
+    const existingIdx = parsedApps.findIndex((x) => (x.app_id || '').trim().toUpperCase() === defApp.app_id);
+    if (existingIdx === -1) {
       parsedApps.push(defApp);
+    } else if (defApp.app_id === 'APP10') {
+      parsedApps[existingIdx] = {
+        ...parsedApps[existingIdx],
+        app_title: parsedApps[existingIdx].app_title || defApp.app_title,
+        description: parsedApps[existingIdx].description || defApp.description,
+        badge_text: parsedApps[existingIdx].badge_text || defApp.badge_text,
+        badge_type: parsedApps[existingIdx].badge_type || defApp.badge_type,
+        icon_name: parsedApps[existingIdx].icon_name || defApp.icon_name,
+        app_url: isValidHttpUrl(parsedApps[existingIdx].app_url) ? parsedApps[existingIdx].app_url : defApp.app_url,
+        display_zone: 'TOP_BAR',
+        is_visible: 'TRUE',
+      };
     }
   });
+
+  const app10Entry = parsedApps.find((app) => (app.app_id || '').trim().toUpperCase() === 'APP10');
+  if (app10Entry && isValidHttpUrl(app10Entry.app_url)) {
+    CONFIG.APP10_API_URL = app10Entry.app_url.trim();
+  }
 
   // ดึงลิงก์ระบบจัดการรหัสผ่าน (APP04) และระบบจัดการโหลดสอน/API (APP03) อัตโนมัติ
   const app03Entry = parsedApps.find(
@@ -1641,6 +1678,7 @@ function setupPortalAdminEvents() {
         document.getElementById('portal-admin-passcode').value = '';
         showAdminWorkspace(res.user, res.sessionToken, res.data);
         showPortalToast('เข้าสู่ระบบจัดการ Portal Hub สำเร็จ');
+        checkAndShowAdvisorPendingPopup(res.user);
       } catch (err) {
         btnLogin.disabled = false;
         btnLogin.textContent = 'เข้าสู่ระบบจัดการ Portal';
@@ -1973,10 +2011,317 @@ function setupHybridPreviewEvents() {
   });
 }
 
+// =========================================================
+// ระบบล็อกอินอาจารย์ด้วย Passcode กลางมุมขวาบน & Pop-up แจ้งเตือนคำร้องค้าง (APP10)
+// =========================================================
+let facultyAuthState = {
+  accountsLoaded: false,
+  accounts: [],
+  user: null,
+  pendingCount: 0,
+};
+
+function getApp10ExecUrl() {
+  const app10 = (rawPortalApps || []).find((a) => String(a.app_id || '').toUpperCase() === 'APP10');
+  if (app10 && isValidHttpUrl(app10.app_url)) return app10.app_url.trim();
+  return CONFIG.APP10_API_URL || CONFIG.FALLBACK_APP_URLS.APP10;
+}
+
+async function loadFacultyLoginAccounts() {
+  if (facultyAuthState.accountsLoaded && facultyAuthState.accounts.length > 0) return;
+  const sel = document.getElementById('faculty-login-select');
+  if (!sel) return;
+
+  const app10Url = getApp10ExecUrl();
+  try {
+    const res = await fetch(`${app10Url}?action=getInitialAppData`, { cache: 'no-store' });
+    const data = await res.json();
+    if (data && data.success && data.payload && Array.isArray(data.payload.loginAccounts)) {
+      facultyAuthState.accounts = data.payload.loginAccounts;
+      facultyAuthState.accountsLoaded = true;
+      sel.innerHTML =
+        '<option value="">-- เลือกชื่อคณาจารย์ / บุคลากร --</option>' +
+        facultyAuthState.accounts
+          .map(
+            (acc) =>
+              `<option value="${escapeHtml(acc.id)}">${escapeHtml(acc.displayName || acc.name)}${
+                acc.short_code ? ` [${escapeHtml(acc.short_code)}]` : ''
+              }</option>`
+          )
+          .join('');
+      return;
+    }
+  } catch (err) {
+    console.warn('โหลดรายชื่ออาจารย์จาก APP10 ไม่สำเร็จ ลองดึงจาก APP03 แทน:', err);
+  }
+
+  // Fallback ดึงจาก APP03 API
+  const urls = getCandidateAdminApiUrls();
+  for (const apiUrl of urls) {
+    try {
+      const res = await fetch(`${apiUrl}?action=portal_faculty`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.faculty)) {
+        facultyAuthState.accounts = data.faculty;
+        facultyAuthState.accountsLoaded = true;
+        sel.innerHTML =
+          '<option value="">-- เลือกชื่อคณาจารย์ / บุคลากร --</option>' +
+          data.faculty
+            .map(
+              (f) =>
+                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
+            )
+            .join('');
+        return;
+      }
+    } catch (e) {}
+  }
+}
+
+function updateFacultyHeaderButtonUI() {
+  const labelEl = document.getElementById('btn-faculty-login-label');
+  const badgeEl = document.getElementById('faculty-pending-badge');
+  const formBox = document.getElementById('faculty-login-form-box');
+  const loggedBox = document.getElementById('faculty-logged-in-box');
+  const nameEl = document.getElementById('faculty-logged-in-name');
+
+  if (!facultyAuthState.user) {
+    if (labelEl) labelEl.textContent = 'เข้าสู่ระบบ / จัดการรหัสผ่านอาจารย์';
+    if (badgeEl) badgeEl.classList.add('hidden');
+    if (formBox) formBox.classList.remove('hidden');
+    if (loggedBox) loggedBox.classList.add('hidden');
+    return;
+  }
+
+  const displayName = facultyAuthState.user.displayName || facultyAuthState.user.name || 'อาจารย์';
+  if (labelEl) labelEl.textContent = displayName;
+  if (nameEl) nameEl.textContent = `👤 ${displayName}`;
+  if (formBox) formBox.classList.add('hidden');
+  if (loggedBox) loggedBox.classList.remove('hidden');
+
+  if (badgeEl) {
+    if (facultyAuthState.pendingCount > 0) {
+      badgeEl.textContent = String(facultyAuthState.pendingCount);
+      badgeEl.classList.remove('hidden');
+    } else {
+      badgeEl.classList.add('hidden');
+    }
+  }
+}
+
+function showAdvisorPendingPopupModal(advisorDisplayName, count, items) {
+  const modal = document.getElementById('advisor-pending-popup');
+  if (!modal) return;
+
+  const greetingEl = document.getElementById('advisor-popup-greeting');
+  const countEl = document.getElementById('advisor-popup-count-num');
+  const listEl = document.getElementById('advisor-popup-items-list');
+  const gotoBtn = document.getElementById('btn-goto-app10-approval');
+
+  if (greetingEl) {
+    greetingEl.innerHTML = `เรียน <strong>${escapeHtml(advisorDisplayName)}</strong> ขณะนี้มีคำร้องขอจองห้องเรียน/ห้องประชุมจากนักศึกษาที่ระบุชื่อท่านเป็นอาจารย์ที่ปรึกษา รอการพิจารณาอนุมัติในระบบ <strong>APP10</strong>:`;
+  }
+  if (countEl) {
+    countEl.textContent = `${count} รายการ`;
+  }
+
+  const app10Url = getApp10ExecUrl();
+  const sep = app10Url.includes('?') ? '&' : '?';
+  if (gotoBtn) {
+    gotoBtn.href = `${app10Url}${sep}tab=advisor`;
+  }
+
+  if (listEl) {
+    if (Array.isArray(items) && items.length > 0) {
+      listEl.innerHTML = items
+        .map(
+          (it) => `
+          <div class="advisor-popup-item">
+            <div class="advisor-popup-item-top">
+              <span>รหัสคำร้อง #${escapeHtml(it.Booking_ID || '-')} • ห้อง ${escapeHtml(it.Room_ID || '-')}</span>
+              <span>📆 ${escapeHtml(it.Booking_Date || '')} (${escapeHtml(it.Start_Time || '')}-${escapeHtml(it.End_Time || '')} น.)</span>
+            </div>
+            <div>👤 <strong>ผู้จอง:</strong> ${escapeHtml(it.Booker_Name || '-')} • <strong>วัตถุประสงค์:</strong> ${escapeHtml(it.Purpose || '-')}</div>
+          </div>
+        `
+        )
+        .join('');
+    } else {
+      listEl.innerHTML = '';
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+async function checkAndShowAdvisorPendingPopup(userObj) {
+  if (!userObj) return;
+  const rawName = String(userObj.name || userObj.displayName || '').trim();
+  if (!rawName) return;
+
+  // ตัดคำนำหน้าตำแหน่งทางวิชาการและวงเล็บชื่อเล่นออกเพื่อให้แมตช์กับชื่ออาจารย์ที่ปรึกษาในชีต APP10 ได้แม่นยำทุกรูปแบบ
+  const cleanAdvisorQuery = rawName
+    .replace(/\(.*?\)/g, '')
+    .replace(/(ศ\.ดร\.|รศ\.ดร\.|ผศ\.ดร\.|อ\.ดร\.|ศ\.|รศ\.|ผศ\.|อ\.|ดร\.)/g, '')
+    .trim() || rawName;
+
+  const app10Url = getApp10ExecUrl();
+  const statusEl = document.getElementById('faculty-logged-in-status');
+  if (statusEl) statusEl.textContent = '⏳ กำลังตรวจสอบคำร้องนักศึกษารออนุมัติจากระบบจองห้อง (APP10)...';
+
+  try {
+    const apiEndpoint = `${app10Url}?action=getPendingAdvisorCount&advisorName=${encodeURIComponent(cleanAdvisorQuery)}`;
+    const res = await fetch(apiEndpoint, { cache: 'no-store' });
+    const data = await res.json();
+
+    const pendingCount = Number(data && data.pendingAdvisorCount) || 0;
+    const items = (data && Array.isArray(data.items)) ? data.items : [];
+    facultyAuthState.pendingCount = pendingCount;
+    updateFacultyHeaderButtonUI();
+
+    if (statusEl) {
+      statusEl.innerHTML =
+        pendingCount > 0
+          ? `🔔 พบคำร้องจองห้องของนักศึกษารอท่านอนุมัติ <strong style="color:#b45309;">${pendingCount} รายการ</strong>`
+          : '✅ ไม่มีคำร้องจองห้องของนักศึกษาค้างรออนุมัติในขณะนี้';
+    }
+
+    if (pendingCount > 0) {
+      document.getElementById('faculty-login-modal')?.classList.add('hidden');
+      showAdvisorPendingPopupModal(userObj.displayName || userObj.name, pendingCount, items);
+    }
+  } catch (err) {
+    console.warn('เรียก API getPendingAdvisorCount ของ APP10 ไม่สำเร็จ:', err);
+    if (statusEl) {
+      statusEl.textContent = 'เชื่อมต่อระบบเรียบร้อยแล้ว';
+    }
+  }
+}
+
+function setupFacultyLoginAndAdvisorPopupEvents() {
+  const triggerBtn = document.getElementById('btn-faculty-login-trigger');
+  const modal = document.getElementById('faculty-login-modal');
+  const closeBtn = document.getElementById('btn-faculty-login-close');
+  const submitBtn = document.getElementById('btn-faculty-login-submit');
+  const passInput = document.getElementById('faculty-login-passcode');
+  const errBox = document.getElementById('faculty-login-error');
+  const logoutBtn = document.getElementById('btn-faculty-logout');
+  const recheckBtn = document.getElementById('btn-faculty-recheck-pending');
+  const closePopupBtn = document.getElementById('btn-close-advisor-popup');
+
+  triggerBtn?.addEventListener('click', () => {
+    modal?.classList.remove('hidden');
+    loadFacultyLoginAccounts();
+    updateFacultyHeaderButtonUI();
+  });
+
+  closeBtn?.addEventListener('click', () => {
+    modal?.classList.add('hidden');
+  });
+
+  closePopupBtn?.addEventListener('click', () => {
+    document.getElementById('advisor-pending-popup')?.classList.add('hidden');
+  });
+
+  recheckBtn?.addEventListener('click', () => {
+    if (facultyAuthState.user) {
+      checkAndShowAdvisorPendingPopup(facultyAuthState.user);
+    }
+  });
+
+  logoutBtn?.addEventListener('click', () => {
+    facultyAuthState.user = null;
+    facultyAuthState.pendingCount = 0;
+    try {
+      sessionStorage.removeItem(CONFIG.FACULTY_SESSION_KEY);
+    } catch (e) {}
+    updateFacultyHeaderButtonUI();
+    showPortalToast('ออกจากระบบอาจารย์เรียบร้อยแล้ว');
+  });
+
+  const handleFacultyLoginSubmit = async () => {
+    const accountId = document.getElementById('faculty-login-select')?.value || '';
+    const passcode = (passInput?.value || '').trim();
+    if (!accountId || !passcode) {
+      if (errBox) {
+        errBox.textContent = 'กรุณาเลือกชื่ออาจารย์และกรอกรหัสผ่าน (Passcode) ครับ';
+        errBox.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (errBox) errBox.classList.add('hidden');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ กำลังตรวจสอบรหัสผ่านกลาง...';
+    }
+
+    const app10Url = getApp10ExecUrl();
+    try {
+      const res = await fetch(app10Url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'authenticateStaffOrFaculty',
+          accountId: accountId,
+          passcode: passcode,
+        }),
+      });
+      const data = await res.json();
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔐 เข้าสู่ระบบและตรวจสอบคำร้องรออนุมัติ';
+      }
+
+      if (!data || !data.success) {
+        if (errBox) {
+          errBox.textContent = (data && data.message) || 'รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+          errBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (passInput) passInput.value = '';
+      facultyAuthState.user = data.user;
+      try {
+        sessionStorage.setItem(CONFIG.FACULTY_SESSION_KEY, JSON.stringify(data.user));
+      } catch (e) {}
+
+      updateFacultyHeaderButtonUI();
+      showPortalToast(`เข้าสู่ระบบสำเร็จ: ${data.user.displayName || data.user.name}`);
+      await checkAndShowAdvisorPendingPopup(data.user);
+    } catch (err) {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔐 เข้าสู่ระบบและตรวจสอบคำร้องรออนุมัติ';
+      }
+      if (errBox) {
+        errBox.textContent = 'ไม่สามารถเชื่อมต่อ API ระบบจองห้อง (APP10) ได้ในขณะนี้';
+        errBox.classList.remove('hidden');
+      }
+    }
+  };
+
+  submitBtn?.addEventListener('click', handleFacultyLoginSubmit);
+  passInput?.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') handleFacultyLoginSubmit();
+  });
+
+  // กู้คืนเซสชันอาจารย์ในแท็บปัจจุบัน (ถ้ามี)
+  try {
+    const saved = sessionStorage.getItem(CONFIG.FACULTY_SESSION_KEY);
+    if (saved) {
+      facultyAuthState.user = JSON.parse(saved);
+      updateFacultyHeaderButtonUI();
+    }
+  } catch (e) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setupHybridPreviewEvents();
   initPortal();
   setupRoleSwitcherEvents();
   setupPortalAdminEvents();
+  setupFacultyLoginAndAdvisorPopupEvents();
   loadLiveAnnouncementsTicker();
 });
