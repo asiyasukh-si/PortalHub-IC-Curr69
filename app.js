@@ -1089,11 +1089,11 @@ async function loadPortalAdminFacultyList() {
       if (data && data.success && Array.isArray(data.faculty)) {
         CONFIG.ADMIN_API_URL = apiUrl;
         sel.innerHTML =
-          '<option value="">-- เลือกชื่ออาจารย์ผู้ดูแลระบบ --</option>' +
+          '<option value="">-- เลือกชื่อผู้ดูแลระบบ --</option>' +
           data.faculty
             .map(
               (f) =>
-                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
+                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`
             )
             .join('');
         adminState.facultyLoaded = true;
@@ -1148,7 +1148,7 @@ function showAdminWorkspace(user, token, data) {
   document.getElementById('portal-admin-workspace').classList.remove('hidden');
   const badge = document.getElementById('portal-admin-user-badge');
   if (badge) {
-    badge.textContent = `${user.name} (Admin)`;
+    badge.textContent = user.name;
     badge.classList.remove('hidden');
   }
   document.getElementById('btn-portal-admin-logout').classList.remove('hidden');
@@ -2044,9 +2044,7 @@ async function loadFacultyLoginAccounts() {
         facultyAuthState.accounts
           .map(
             (acc) =>
-              `<option value="${escapeHtml(acc.id)}">${escapeHtml(acc.displayName || acc.name)}${
-                acc.short_code ? ` [${escapeHtml(acc.short_code)}]` : ''
-              }</option>`
+              `<option value="${escapeHtml(acc.id)}">${escapeHtml(acc.displayName || acc.name)}</option>`
           )
           .join('');
       return;
@@ -2069,7 +2067,7 @@ async function loadFacultyLoginAccounts() {
           data.faculty
             .map(
               (f) =>
-                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)} [${escapeHtml(f.short_code)}]</option>`
+                `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`
             )
             .join('');
         return;
