@@ -2084,7 +2084,7 @@ function updateFacultyHeaderButtonUI() {
   const nameEl = document.getElementById('faculty-logged-in-name');
 
   if (!facultyAuthState.user) {
-    if (labelEl) labelEl.textContent = 'เข้าสู่ระบบ / จัดการรหัสผ่านอาจารย์';
+    if (labelEl) labelEl.textContent = 'เข้าสู่ระบบ';
     if (badgeEl) badgeEl.classList.add('hidden');
     if (formBox) formBox.classList.remove('hidden');
     if (loggedBox) loggedBox.classList.add('hidden');
@@ -2117,7 +2117,7 @@ function showAdvisorPendingPopupModal(advisorDisplayName, count, items) {
   const gotoBtn = document.getElementById('btn-goto-app10-approval');
 
   if (greetingEl) {
-    greetingEl.innerHTML = `เรียน <strong>${escapeHtml(advisorDisplayName)}</strong> ขณะนี้มีคำร้องขอจองห้องเรียน/ห้องประชุมจากนักศึกษาที่ระบุชื่อท่านเป็นอาจารย์ที่ปรึกษา รอการพิจารณาอนุมัติในระบบ <strong>APP10</strong>:`;
+    greetingEl.innerHTML = `เรียน <strong>${escapeHtml(advisorDisplayName)}</strong> มีคำร้องจองห้องเรียน/ห้องประชุมจากนักศึกษารอการอนุมัติ:`;
   }
   if (countEl) {
     countEl.textContent = `${count} รายการ`;
@@ -2165,7 +2165,7 @@ async function checkAndShowAdvisorPendingPopup(userObj) {
 
   const app10Url = getApp10ExecUrl();
   const statusEl = document.getElementById('faculty-logged-in-status');
-  if (statusEl) statusEl.textContent = '⏳ กำลังตรวจสอบคำร้องนักศึกษารออนุมัติจากระบบจองห้อง (APP10)...';
+  if (statusEl) statusEl.textContent = '⏳ กำลังตรวจสอบคำร้องรออนุมัติ...';
 
   try {
     const apiEndpoint = `${app10Url}?action=getPendingAdvisorCount&advisorName=${encodeURIComponent(cleanAdvisorQuery)}`;
@@ -2251,7 +2251,7 @@ function setupFacultyLoginAndAdvisorPopupEvents() {
     if (errBox) errBox.classList.add('hidden');
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ กำลังตรวจสอบรหัสผ่านกลาง...';
+      submitBtn.textContent = 'กำลังเข้าสู่ระบบ...';
     }
 
     const app10Url = getApp10ExecUrl();
@@ -2268,7 +2268,7 @@ function setupFacultyLoginAndAdvisorPopupEvents() {
       const data = await res.json();
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = '🔐 เข้าสู่ระบบและตรวจสอบคำร้องรออนุมัติ';
+        submitBtn.textContent = 'เข้าสู่ระบบ';
       }
 
       if (!data || !data.success) {
@@ -2291,10 +2291,10 @@ function setupFacultyLoginAndAdvisorPopupEvents() {
     } catch (err) {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = '🔐 เข้าสู่ระบบและตรวจสอบคำร้องรออนุมัติ';
+        submitBtn.textContent = 'เข้าสู่ระบบ';
       }
       if (errBox) {
-        errBox.textContent = 'ไม่สามารถเชื่อมต่อ API ระบบจองห้อง (APP10) ได้ในขณะนี้';
+        errBox.textContent = 'ไม่สามารถเชื่อมต่อระบบได้ในขณะนี้';
         errBox.classList.remove('hidden');
       }
     }

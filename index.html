@@ -50,13 +50,13 @@
                 id="btn-faculty-login-trigger"
                 type="button"
                 class="passcode-btn"
-                title="เข้าสู่ระบบอาจารย์ด้วย Passcode กลาง เพื่อตรวจสอบคำร้องรออนุมัติและจัดการรหัสผ่าน"
+                title="เข้าสู่ระบบอาจารย์"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <span id="btn-faculty-login-label">เข้าสู่ระบบ / จัดการรหัสผ่านอาจารย์</span>
+                <span id="btn-faculty-login-label">เข้าสู่ระบบ</span>
                 <span id="faculty-pending-badge" class="faculty-pending-pill hidden">0</span>
               </button>
               <a
@@ -65,9 +65,9 @@
                 href="https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec"
                 target="_blank"
                 rel="noopener noreferrer"
-                title="เปิดหน้าตั้งรหัสผ่านครั้งแรก หรือเปลี่ยนรหัสผ่านอาจารย์ (APP04)"
+                title="ตั้งค่าหรือเปลี่ยนรหัสผ่านอาจารย์"
               >
-                <span>🔑 เปลี่ยนรหัสผ่าน</span>
+                <span>เปลี่ยนรหัสผ่าน</span>
               </a>
             </div>
           </div>
@@ -532,47 +532,40 @@
     </div>
   </div>
 
-  <!-- หน้าต่างล็อกอินอาจารย์ด้วย Passcode กลาง & ตั้งค่ารหัสผ่าน (มุมขวาบน) -->
+  <!-- หน้าต่างล็อกอินอาจารย์มุมขวาบน -->
   <div id="faculty-login-modal" class="admin-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="faculty-login-modal-title">
-    <div class="admin-modal-card" style="max-width: 500px;">
+    <div class="admin-modal-card" style="max-width: 440px;">
       <div class="admin-modal-header">
-        <div>
-          <span class="dept-badge" style="margin-bottom:4px;">CENTRAL PASSCODE • ระบบยืนยันตัวตนอาจารย์กลาง</span>
-          <h2 id="faculty-login-modal-title" class="admin-modal-title">🔐 เข้าสู่ระบบอาจารย์ &amp; จัดการรหัสผ่าน</h2>
-        </div>
-        <button id="btn-faculty-login-close" type="button" class="admin-btn-outline admin-btn-sm">ปิด ✕</button>
+        <h2 id="faculty-login-modal-title" class="admin-modal-title">เข้าสู่ระบบ</h2>
+        <button id="btn-faculty-login-close" type="button" class="admin-btn-outline admin-btn-sm">✕</button>
       </div>
 
       <!-- สถานะยังไม่ล็อกอิน -->
       <div id="faculty-login-form-box">
-        <p class="admin-muted" style="margin-bottom:14px;">
-          กรอกรหัสผ่านอาจารย์กลาง (Passcode) เพื่อตรวจสอบรายการคำร้องนักศึกษาที่รอท่านอนุมัติ (เช่น ระบบจองห้องเรียนและห้องประชุม APP10) หรือคลิกปุ่มด้านล่างเพื่อตั้งค่า/เปลี่ยนรหัสผ่าน
-        </p>
         <div class="admin-form-group">
-          <label for="faculty-login-select">👤 เลือกชื่อคณาจารย์ / บุคลากร</label>
+          <label for="faculty-login-select">ชื่อผู้ใช้งาน</label>
           <select id="faculty-login-select" class="admin-input">
-            <option value="">-- กำลังโหลดรายชื่อคณาจารย์... --</option>
+            <option value="">-- กำลังโหลดรายชื่อ... --</option>
           </select>
         </div>
         <div class="admin-form-group">
-          <label for="faculty-login-passcode">🔑 รหัสผ่านส่วนตัว (Passcode)</label>
-          <input type="password" id="faculty-login-passcode" class="admin-input" placeholder="กรอกรหัสผ่านอาจารย์กลาง..." />
+          <label for="faculty-login-passcode">รหัสผ่าน</label>
+          <input type="password" id="faculty-login-passcode" class="admin-input" placeholder="กรอกรหัสผ่าน" />
         </div>
         <div id="faculty-login-error" class="admin-error-box hidden" style="margin-bottom:12px;"></div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="btn-faculty-login-submit" type="button" class="admin-btn-primary" style="width:100%;">
-            🔐 เข้าสู่ระบบและตรวจสอบคำร้องรออนุมัติ
-          </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;">
           <a
             id="link-open-passcode-app04"
             href="https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec"
             target="_blank"
             rel="noopener noreferrer"
-            class="admin-btn-outline"
-            style="text-align:center;text-decoration:none;display:block;"
+            style="font-size:0.8rem;color:#64577a;text-decoration:underline;"
           >
-            🔑 เปิดหน้าตั้งรหัสผ่านครั้งแรก / เปลี่ยนรหัสผ่าน (APP04) →
+            ลืมรหัสผ่าน
           </a>
+          <button id="btn-faculty-login-submit" type="button" class="admin-btn-primary">
+            เข้าสู่ระบบ
+          </button>
         </div>
       </div>
 
@@ -582,48 +575,49 @@
           <div style="font-weight:700;font-size:1.02rem;color:#3b2860;margin-bottom:4px;" id="faculty-logged-in-name"></div>
           <div class="admin-muted" id="faculty-logged-in-status">กำลังตรวจสอบคำร้องรออนุมัติ...</div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;">
-          <button id="btn-faculty-recheck-pending" type="button" class="admin-btn-primary admin-btn-sm">
-            🔄 ตรวจสอบคำร้องรออนุมัติอีกครั้ง
-          </button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;">
           <a
             href="https://script.google.com/macros/s/AKfycbwAzVUsVLGp9aemQVINA87zt-A-c2BNekHNu-tTZHs6JjSKYrSsGKd3X-iVgBNKwiv_jg/exec"
             target="_blank"
             rel="noopener noreferrer"
-            class="admin-btn-outline admin-btn-sm"
-            style="text-decoration:none;"
+            style="font-size:0.8rem;color:#64577a;text-decoration:underline;"
           >
-            🔑 เปลี่ยนรหัสผ่าน (APP04)
+            เปลี่ยนรหัสผ่าน
           </a>
-          <button id="btn-faculty-logout" type="button" class="admin-btn-danger admin-btn-sm">
-            ออกจากระบบ
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-faculty-recheck-pending" type="button" class="admin-btn-outline admin-btn-sm">
+              ตรวจสอบคำร้อง
+            </button>
+            <button id="btn-faculty-logout" type="button" class="admin-btn-danger admin-btn-sm">
+              ออกจากระบบ
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- หน้าต่าง Pop-up แจ้งเตือนอาจารย์ที่ปรึกษาเมื่อมีคำร้องนักศึกษารออนุมัติ (APP10) -->
+  <!-- หน้าต่าง Pop-up แจ้งเตือนอาจารย์ที่ปรึกษาเมื่อมีคำร้องนักศึกษารออนุมัติ -->
   <div id="advisor-pending-popup" class="admin-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="advisor-popup-title">
     <div class="admin-modal-card advisor-popup-card">
       <div class="advisor-popup-header">
         <div class="advisor-popup-icon" aria-hidden="true">🔔</div>
         <div>
-          <span class="dept-badge" style="margin-bottom:4px;">แจ้งเตือนอาจารย์ที่ปรึกษา • ระบบจองห้องเรียนและห้องประชุม</span>
-          <h2 id="advisor-popup-title" class="admin-modal-title">มีคำร้องนักศึกษารออาจารย์พิจารณาอนุมัติ</h2>
+          <span class="dept-badge" style="margin-bottom:4px;">ระบบจองห้องเรียนและห้องประชุม</span>
+          <h2 id="advisor-popup-title" class="admin-modal-title">มีคำร้องนักศึกษารออนุมัติ</h2>
         </div>
       </div>
       <div class="advisor-popup-body">
         <p id="advisor-popup-greeting" class="advisor-popup-greeting"></p>
         <div class="advisor-popup-count-box">
-          <span>จำนวนคำร้องจองห้องที่รอท่านอนุมัติ</span>
+          <span>คำร้องจองห้องรออนุมัติ</span>
           <strong id="advisor-popup-count-num">0 รายการ</strong>
         </div>
         <div id="advisor-popup-items-list" class="advisor-popup-items-list"></div>
       </div>
       <div class="advisor-popup-footer">
         <button id="btn-close-advisor-popup" type="button" class="admin-btn-outline">
-          ปิดหน้าต่างเพื่อใช้งานหน้า Portal ต่อ
+          ปิดหน้าต่าง
         </button>
         <a
           id="btn-goto-app10-approval"
@@ -632,7 +626,7 @@
           rel="noopener noreferrer"
           class="admin-btn-primary advisor-goto-btn"
         >
-          📋 ไปยังหน้าอนุมัติคำร้อง (ระบบจองห้อง APP10) →
+          ไปที่หน้าอนุมัติคำร้อง →
         </a>
       </div>
     </div>
